@@ -1,0 +1,14 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+# NestJS build output
+dist
+
+# Prisma generated client
+/src/generated
+
+# Ignore all markdown files except README.md
+**/*.md
+!README.md
+!**/README.md
