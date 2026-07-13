@@ -44,6 +44,8 @@ model profiles {
   email               String?
   phone               String?
   professional_status String?
+  city                String?
+  state               String?
   created_at          DateTime? @default(now())
   updated_at          DateTime? @default(now())
 
