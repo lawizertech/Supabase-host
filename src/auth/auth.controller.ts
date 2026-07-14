@@ -34,7 +34,7 @@ export class AuthController {
 
   @Post('complete-profile')
   async completeProfile(
-    @Body() body: { uid: string; displayName: string; phoneNumber: string; city?: string; state?: string },
+    @Body() body: { uid: string; displayName: string; phoneNumber: string; city?: string; state?: string; photoURL?: string; hasPassword?: boolean },
   ) {
     return this.authService.completeProfile(
       body.uid,
@@ -42,6 +42,8 @@ export class AuthController {
       body.phoneNumber,
       body.city,
       body.state,
+      body.photoURL,
+      body.hasPassword,
     );
   }
 

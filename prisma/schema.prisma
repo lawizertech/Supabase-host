@@ -46,6 +46,8 @@ model profiles {
   professional_status String?
   city                String?
   state               String?
+  photo_url           String?
+  has_password        Boolean   @default(false)
   created_at          DateTime? @default(now())
   updated_at          DateTime? @default(now())
 

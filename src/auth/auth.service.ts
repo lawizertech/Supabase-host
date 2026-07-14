@@ -66,6 +66,9 @@ export class AuthService {
       const userData = await this.verifySupabaseToken(token);
       const uid = userData.id;
 
+      // Extract Google photo URL from user metadata
+      const googlePhotoUrl = userData.user_metadata?.avatar_url || userData.user_metadata?.picture || '';
+
       // Fetch user profile
       let profile = await this.prisma.profiles.findUnique({
         where: { id: uid },
@@ -79,17 +82,33 @@ export class AuthService {
             email: userData.email,
             name: userData.user_metadata?.name || userData.user_metadata?.full_name || '',
             phone: userData.user_metadata?.phone || '',
+            photo_url: googlePhotoUrl || null,
             role: 'client',
           },
+        });
+      } else if (!profile.photo_url && googlePhotoUrl) {
+        // If profile exists but photo is not stored yet, update it with Google picture
+        profile = await this.prisma.profiles.update({
+          where: { id: uid },
+          data: { photo_url: googlePhotoUrl },
         });
       }
 
       const isProfileComplete = !!(profile.name && profile.phone);
+      const hasPassword = profile.has_password || !!(
+        userData.identities?.some((id: any) => id.provider === 'email') ||
+        userData.app_metadata?.providers?.includes('email')
+      );
 
       return {
         success: true,
         token: token, // Return the same token or session
-        data: { ...profile, uid: profile.id, isProfileComplete },
+        data: {
+          ...profile,
+          uid: profile.id,
+          isProfileComplete,
+          hasPassword,
+        },
       };
     } catch (error) {
       return {
@@ -120,7 +139,7 @@ export class AuthService {
     }
   }
 
-  async completeProfile(uid: string, name: string, phone: string, city?: string, state?: string) {
+  async completeProfile(uid: string, name: string, phone: string, city?: string, state?: string, photoUrl?: string, hasPassword?: boolean) {
     try {
       const profile = await this.prisma.profiles.update({
         where: { id: uid },
@@ -129,6 +148,8 @@ export class AuthService {
           phone,
           city: city || null,
           state: state || null,
+          photo_url: photoUrl || null,
+          has_password: hasPassword ? true : undefined,
         },
       });
 
