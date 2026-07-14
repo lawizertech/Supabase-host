@@ -25,6 +25,11 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+---
+
+> [!IMPORTANT]
+> **Frontend Integration Guide:** If you are working on the client-side/frontend applications, please read the [Frontend Integration Guide](file:///Users/suvanghosh/Supabase-host/README_FRONTEND.md) for endpoint documentation, authentication setup, and details on how to hook up Supabase auth.
+
 ## Project setup
 
 ```bash
