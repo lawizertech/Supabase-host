@@ -180,4 +180,36 @@ export class CasesService {
       },
     };
   }
+
+  async getServices(userId: string) {
+    const cases = await this.prisma.cases.findMany({
+      where: { client_id: userId },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const services = await this.prisma.services.findMany();
+    const serviceMap = new Map(services.map((s: any) => [s.service_id, s.title]));
+
+    const mappedCases = cases.map((c: any) => {
+      const metadata = (c.metadata as any) || {};
+      const title = serviceMap.get(c.case_type) || metadata.serviceTitle || c.case_type;
+
+      return {
+        serviceId: c.id,
+        serviceCode: c.case_type,
+        title: title,
+        status: c.status === 'paid' ? 'ACTIVE' : 'ON_HOLD',
+        paymentStatus: c.status, // e.g. 'pending_payment', 'paid'
+        createdAt: c.created_at,
+        documentStats: {
+          totalRequired: 0,
+          uploaded: 0,
+          approved: 0,
+          pending: 0,
+        },
+      };
+    });
+
+    return { success: true, services: mappedCases };
+  }
 }

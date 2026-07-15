@@ -61,4 +61,14 @@ export class CasesController {
     const userData = await this.authService.verifySupabaseToken(token);
     return this.casesService.getServiceDetails(userData.id, caseId);
   }
+
+  @Get('services')
+  async getServices(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    return this.casesService.getServices(userData.id);
+  }
 }
