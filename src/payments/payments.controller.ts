@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -53,5 +53,15 @@ export class PaymentsController {
       throw new UnauthorizedException('Raw request body missing');
     }
     return this.paymentsService.handleWebhook(req.rawBody, signature);
+  }
+
+  @Get('history')
+  async getPaymentHistory(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    return this.paymentsService.getPaymentHistory(userData.id);
   }
 }

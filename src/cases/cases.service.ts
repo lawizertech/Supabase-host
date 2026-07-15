@@ -88,4 +88,96 @@ export class CasesService {
       keyId: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID_TEST || '',
     };
   }
+
+  async getDashboard(userId: string) {
+    const cases = await this.prisma.cases.findMany({
+      where: { client_id: userId },
+    });
+
+    const totalServices = cases.length;
+    const activeServices = cases.filter((c: any) => c.status === 'paid').length;
+    const completedServices = cases.filter((c: any) => c.status === 'completed').length;
+
+    // Fetch verified payments
+    const caseIds = cases.map((c: any) => c.id);
+    const payments = await this.prisma.payments.findMany({
+      where: {
+        case_id: { in: caseIds },
+        status: 'verified',
+      },
+    });
+    const totalSpent = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+
+    // Fetch meetings
+    const meetings = await this.prisma.meetings.findMany({
+      where: {
+        case_id: { in: caseIds },
+      },
+    });
+
+    const upcomingMeetings = meetings.filter((m: any) => m.status === 'confirmed' || m.status === 'proposed');
+    const upcomingCount = upcomingMeetings.length;
+    const completedCount = meetings.filter((m: any) => m.status === 'completed').length;
+
+    const upcomingBookings = upcomingMeetings.map((m: any) => {
+      const parentCase = cases.find((c: any) => c.id === m.case_id);
+      return {
+        bookingId: m.id,
+        serviceName: parentCase?.case_type || 'Consultation',
+        expertName: 'Legal Expert',
+        bookingDate: m.scheduled_for ? { _seconds: Math.floor(m.scheduled_for.getTime() / 1000) } : null,
+        rate: 0,
+        status: m.status === 'confirmed' ? 'confirmed' : 'pending',
+      };
+    });
+
+    return {
+      success: true,
+      dashboard: {
+        upcomingCount,
+        completedCount,
+        expertsConsulted: 0,
+        totalSpent,
+        upcomingBookings,
+        topExperts: [],
+        totalServices,
+        activeServices,
+        completedServices,
+        pendingServiceDocuments: 0,
+      },
+    };
+  }
+
+  async getServiceDetails(userId: string, caseId: string) {
+    const serviceCase = await this.prisma.cases.findUnique({
+      where: { id: caseId },
+    });
+
+    if (!serviceCase || serviceCase.client_id !== userId) {
+      throw new BadRequestException('Case not found');
+    }
+
+    const service = await this.prisma.services.findUnique({
+      where: { service_id: serviceCase.case_type },
+    });
+
+    return {
+      success: true,
+      service: {
+        serviceId: serviceCase.id,
+        serviceCode: serviceCase.case_type,
+        title: service?.title || serviceCase.case_type,
+        status: serviceCase.status === 'paid' ? 'ACTIVE' : 'ON_HOLD',
+        documentStats: {
+          totalRequired: 0,
+          uploaded: 0,
+          approved: 0,
+          pending: 0,
+        },
+        instructions: null,
+        documentsRequired: [],
+        expertUploadedFiles: [],
+      },
+    };
+  }
 }

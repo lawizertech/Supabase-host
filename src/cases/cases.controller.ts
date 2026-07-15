@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, Param, UnauthorizedException } from '@nestjs/common';
 import { CasesService } from './cases.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -37,5 +37,28 @@ export class CasesController {
       body.clientDetails,
       body.urgency || 'NORMAL',
     );
+  }
+
+  @Get('dashboard')
+  async getDashboard(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    return this.casesService.getDashboard(userData.id);
+  }
+
+  @Get('services/:id')
+  async getServiceDetails(
+    @Headers('authorization') authHeader: string,
+    @Param('id') caseId: string,
+  ) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    return this.casesService.getServiceDetails(userData.id, caseId);
   }
 }

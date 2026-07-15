@@ -131,4 +131,45 @@ export class PaymentsService {
 
     return { success: true };
   }
+
+  async getPaymentHistory(userId: string) {
+    const cases = await this.prisma.cases.findMany({
+      where: { client_id: userId },
+    });
+
+    const caseIds = cases.map((c: any) => c.id);
+
+    const payments = await this.prisma.payments.findMany({
+      where: {
+        case_id: { in: caseIds },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    const serviceMap = new Map(
+      (await this.prisma.services.findMany()).map((s: any) => [s.service_id, s.title])
+    );
+
+    const history = payments.map((p: any) => {
+      const parentCase = cases.find((c: any) => c.id === p.case_id);
+      const serviceTitle = parentCase
+        ? (serviceMap.get(parentCase.case_type) || parentCase.case_type)
+        : 'Unknown Service';
+
+      return {
+        id: p.id,
+        serviceTitle,
+        razorpayOrderId: p.razorpay_order_id,
+        razorpayPaymentId: p.razorpay_payment_id,
+        amount: p.amount,
+        status: p.status,
+        createdAt: p.created_at,
+        verifiedAt: p.verified_at,
+      };
+    });
+
+    return { success: true, history };
+  }
 }
