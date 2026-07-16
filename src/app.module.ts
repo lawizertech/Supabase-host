@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CasesModule } from './cases/cases.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { ChatsModule } from './chats/chats.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminModule } from './admin/admin.module';
     CasesModule,
     PaymentsModule,
     AdminModule,
+    ChatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
