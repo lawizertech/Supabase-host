@@ -30,6 +30,10 @@ export class CasesService {
     const price = service?.price ?? 999; // Default fallback price of 999 INR
     const amountPaise = Math.round(price * 100);
 
+    if (amountPaise < 100) {
+      throw new BadRequestException('Payment amount must be at least 100 paise (1 INR)');
+    }
+
     // 2. Create case (service request) in the database with status 'pending_payment'
     const newCase = await this.prisma.cases.create({
       data: {

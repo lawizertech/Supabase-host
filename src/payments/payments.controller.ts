@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -30,7 +30,7 @@ export class PaymentsController {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, processCode } = body;
 
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !processCode) {
-      throw new UnauthorizedException('Missing required payment verification parameters');
+      throw new BadRequestException('Missing required payment verification parameters');
     }
 
     return this.paymentsService.verifyPayment(
