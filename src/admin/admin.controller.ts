@@ -5,13 +5,13 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @Get('user')
+  @Get('users')
   async getAllUsers() {
     const users = await this.adminService.getAllUsers();
     return { success: true, data: users };
   }
 
-  @Get('expert')
+  @Get('experts')
   async getAllExperts() {
     const experts = await this.adminService.getAllExperts();
     return { success: true, data: experts };
