@@ -38,25 +38,24 @@ export class AuthController {
   @Get('profile')
   async getProfile(
     @Headers('authorization') authHeader: string,
-    @Query('uid') uid: string,
+    @Query('uid') uid?: string,
   ) {
-    if (!uid) {
-      throw new BadRequestException('UID parameter is required');
-    }
     if (!authHeader) {
       throw new UnauthorizedException('Authorization token missing');
     }
     const token = authHeader.replace('Bearer ', '');
     const userData = await this.authService.verifySupabaseToken(token);
 
-    if (userData.id !== uid) {
+    const targetUid = uid || userData.id;
+
+    if (userData.id !== targetUid) {
       const callerProfile = await this.authService.getProfile(userData.id);
       if (!callerProfile.success || callerProfile.data.role !== 'admin') {
         throw new ForbiddenException('You do not have permission to view this profile');
       }
     }
 
-    return this.authService.getProfile(uid);
+    return this.authService.getProfile(targetUid);
   }
 
   @Post('complete-profile')
