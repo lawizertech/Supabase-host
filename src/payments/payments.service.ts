@@ -13,7 +13,7 @@ export class PaymentsService {
     processCode: string,
   ) {
     // 1. Verify payment signature
-    const secret = process.env.RAZORPAY_SECRET || process.env.RAZORPAY_KEY_SECRET_TEST || 'secret_placeholder';
+    const secret = process.env.RAZORPAY_SECRET || 'secret_placeholder';
     const text = razorpay_order_id + '|' + razorpay_payment_id;
     const generatedSignature = crypto
       .createHmac('sha256', secret)
@@ -70,7 +70,7 @@ export class PaymentsService {
   }
 
   async handleWebhook(rawBody: Buffer, signature: string) {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET_TEST || 'webhook_secret_placeholder';
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'webhook_secret_placeholder';
 
     // Verify signature
     const expectedSignature = crypto

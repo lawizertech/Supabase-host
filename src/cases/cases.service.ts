@@ -7,8 +7,8 @@ export class CasesService {
   private razorpay: Razorpay;
 
   constructor(private readonly prisma: PrismaService) {
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID_TEST || 'rzp_test_placeholder';
-    const keySecret = process.env.RAZORPAY_SECRET || process.env.RAZORPAY_KEY_SECRET_TEST || 'secret_placeholder';
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+    const keySecret = process.env.RAZORPAY_SECRET || 'secret_placeholder';
 
     this.razorpay = new Razorpay({
       key_id: keyId,
