@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AuthService {
   private readonly supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   private readonly supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  private readonly supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -165,6 +166,90 @@ export class AuthService {
       };
     } catch (error) {
       return { success: false, message: (error as Error).message };
+    }
+  }
+
+  /**
+   * Refresh an expired access token using the refresh token from Supabase
+   * The refresh token is passed via HttpOnly cookie from the frontend
+   */
+  async refreshAccessToken(refreshToken: string): Promise<any> {
+    try {
+      const res = await fetch(`${this.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: this.supabaseAnonKey,
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!res.ok) {
+        throw new UnauthorizedException('Failed to refresh token with Supabase');
+      }
+
+      const data = await res.json();
+      return {
+        success: true,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || refreshToken, // Supabase may rotate the refresh token
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Token refresh failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Get the authenticated user's session data (authoritative source)
+   * Validates the access token and returns the user profile
+   */
+  async getSession(accessToken: string): Promise<any> {
+    try {
+      // Verify token with Supabase
+      const userData = await this.verifySupabaseToken(accessToken);
+      const uid = userData.id;
+
+      // Fetch user profile from database
+      const profile = await this.prisma.profiles.findUnique({
+        where: { id: uid },
+      });
+
+      if (!profile) {
+        throw new UnauthorizedException('User profile not found');
+      }
+
+      const isProfileComplete = !!(profile.name && profile.phone);
+      const hasPassword = profile.has_password || !!(
+        userData.identities?.some((id: any) => id.provider === 'email') ||
+        userData.app_metadata?.providers?.includes('email')
+      );
+
+      return {
+        success: true,
+        data: {
+          ...profile,
+          uid: profile.id,
+          isProfileComplete,
+          hasPassword,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Session validation failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Invalidate a refresh token (logout)
+   * For Supabase, we can't revoke tokens server-side, but we can clear the cookie
+   * The frontend will also clear its in-memory token
+   */
+  async logout(refreshToken: string): Promise<any> {
+    try {
+      // Attempt to revoke the session on Supabase (if your plan supports it)
+      // Otherwise, just return success and let the cookie be cleared
+      return { success: true, message: 'Logged out successfully' };
+    } catch (error) {
+      return { success: true, message: 'Logged out (token revocation skipped)' };
     }
   }
 }

@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Body, Query, Headers, UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Headers, Req, UnauthorizedException, BadRequestException, ForbiddenException, Res } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -25,14 +26,33 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body() body: { idToken: string },
+    @Body() body: { idToken: string; refreshToken?: string },
     @Headers('authorization') authHeader?: string,
+    @Res({ passthrough: true }) res?: Response,
   ) {
     const token = body.idToken || authHeader?.replace('Bearer ', '');
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }
-    return this.authService.login(token);
+
+    const loginResult = await this.authService.login(token);
+
+    if (!loginResult.success) {
+      throw new UnauthorizedException(loginResult.message);
+    }
+
+    // If a refresh token is provided, set it as an HttpOnly cookie
+    if (body.refreshToken && res) {
+      res.cookie('refreshToken', body.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+    }
+
+    return loginResult;
   }
 
   @Get('profile')
@@ -84,6 +104,102 @@ export class AuthController {
     );
   }
 
+  /**
+   * POST /auth/refresh
+   * 
+   * The frontend calls this when its access token expires.
+   * This endpoint reads the refresh token from the HttpOnly cookie,
+   * exchanges it with Supabase for a new access token,
+   * and returns the new access token to the frontend.
+   */
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // cookie-parser middleware makes parsed cookies available on req.cookies
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token missing from cookie');
+    }
+
+    try {
+      const result = await this.authService.refreshAccessToken(refreshToken);
+
+      // If Supabase rotated the refresh token, update the cookie
+      if (result.refreshToken && res) {
+        res.cookie('refreshToken', result.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+      }
+
+      return {
+        success: true,
+        accessToken: result.accessToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException((error as Error).message);
+    }
+  }
+
+  /**
+   * GET /auth/me
+   * 
+   * Returns the authoritative user session data.
+   * The frontend calls this on app load to restore the session.
+   * Validates the access token with Supabase.
+   */
+  @Get('me')
+  async me(
+    @Headers('authorization') authHeader?: string,
+  ) {
+    if (!authHeader) {
+      throw new UnauthorizedException('No authorization token provided');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    try {
+      return await this.authService.getSession(token);
+    } catch (error) {
+      throw new UnauthorizedException((error as Error).message);
+    }
+  }
+
+  /**
+   * POST /auth/logout
+   * 
+   * Clears the HttpOnly refresh token cookie on the backend.
+   * The frontend also clears its in-memory access token.
+   */
+  @Post('logout')
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Clear the refresh token cookie
+    if (res) {
+      res.cookie('refreshToken', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0, // Immediate expiry
+      });
+    }
+
+    return { success: true, message: 'Logged out successfully' };
+  }
+
+  /**
+   * GET /auth/renew-token (Legacy endpoint)
+   * Kept for backward compatibility, but clients should use /auth/refresh instead
+   */
   @Get('renew-token')
   async renewToken(@Headers('authorization') authHeader: string) {
     const token = authHeader?.replace('Bearer ', '');
