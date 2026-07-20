@@ -1,9 +1,26 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AdminService, AssignCaseDto } from './admin.service';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly authService: AuthService,
+  ) {}
+
+  @Post('login')
+  async adminLogin(
+    @Body() body: { email?: string; password?: string; idToken?: string },
+  ) {
+    if (body.email && body.password) {
+      return this.authService.loginWithPassword(body.email, body.password);
+    }
+    if (body.idToken) {
+      return this.authService.login(body.idToken);
+    }
+    return { success: false, message: 'Email and password required' };
+  }
 
   @Get('users')
   async getAllUsers() {

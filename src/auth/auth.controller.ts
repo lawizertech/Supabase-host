@@ -26,13 +26,27 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body() body: { idToken: string; refreshToken?: string },
+    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string },
     @Headers('authorization') authHeader?: string,
     @Res({ passthrough: true }) res?: Response,
   ) {
+    if (body.email && body.password) {
+      const loginResult = await this.authService.loginWithPassword(body.email, body.password);
+      if (loginResult.refreshToken && res) {
+        res.cookie('refreshToken', loginResult.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+      }
+      return loginResult;
+    }
+
     const token = body.idToken || authHeader?.replace('Bearer ', '');
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException('No token or credentials provided');
     }
 
     const loginResult = await this.authService.login(token);

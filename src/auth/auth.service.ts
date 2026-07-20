@@ -59,6 +59,40 @@ export class AuthService {
   }
 
   /**
+   * Authenticates user via email and password using Supabase Auth
+   */
+  async loginWithPassword(email: string, password: string) {
+    try {
+      const authRes = await fetch(`${this.supabaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: this.supabaseAnonKey,
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!authRes.ok) {
+        const errJson = await authRes.json().catch(() => null);
+        throw new UnauthorizedException(errJson?.error_description || 'Invalid email or password');
+      }
+
+      const authData = await authRes.json();
+      const token = authData.access_token;
+      const refreshToken = authData.refresh_token;
+
+      const loginRes = await this.login(token);
+      return {
+        ...loginRes,
+        accessToken: token,
+        refreshToken,
+      };
+    } catch (error: any) {
+      throw new UnauthorizedException(error.message || 'Authentication failed');
+    }
+  }
+
+  /**
    * Handles user login verification and profile retrieval
    */
   async login(token: string) {
