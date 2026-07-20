@@ -26,7 +26,7 @@ export class AuthController {
 
   @Post('login')
   async login(
-    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string },
+    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string; requestedRole?: string },
     @Headers('authorization') authHeader?: string,
     @Res({ passthrough: true }) res?: Response,
   ) {
@@ -49,7 +49,7 @@ export class AuthController {
       throw new UnauthorizedException('No token or credentials provided');
     }
 
-    const loginResult = await this.authService.login(token);
+    const loginResult = await this.authService.login(token, body.requestedRole);
 
     if (!loginResult.success) {
       throw new UnauthorizedException(loginResult.message);

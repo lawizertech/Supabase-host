@@ -95,7 +95,7 @@ export class AuthService {
   /**
    * Handles user login verification and profile retrieval
    */
-  async login(token: string) {
+  async login(token: string, requestedRole?: string) {
     try {
       // Verify token with Supabase
       const userData = await this.verifySupabaseToken(token);
@@ -109,8 +109,17 @@ export class AuthService {
         where: { id: uid },
       });
 
+      let isNewProfile = false;
       // If profile does not exist, create it from Supabase Auth details
       if (!profile) {
+        isNewProfile = true;
+        const initialRole = (
+          requestedRole ||
+          userData.user_metadata?.role ||
+          userData.app_metadata?.role ||
+          'client'
+        ).toLowerCase();
+
         profile = await this.prisma.profiles.create({
           data: {
             id: uid,
@@ -118,7 +127,7 @@ export class AuthService {
             name: userData.user_metadata?.name || userData.user_metadata?.full_name || '',
             phone: userData.user_metadata?.phone || '',
             photo_url: googlePhotoUrl || null,
-            role: 'client',
+            role: initialRole,
           },
         });
       } else if (!profile.photo_url && googlePhotoUrl) {
@@ -143,6 +152,7 @@ export class AuthService {
           uid: profile.id,
           isProfileComplete,
           hasPassword,
+          isNewProfile,
         },
       };
     } catch (error) {
