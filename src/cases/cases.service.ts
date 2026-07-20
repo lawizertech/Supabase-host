@@ -22,19 +22,17 @@ export class CasesService {
     clientDetails: { fullName: string; email: string; phone: string },
     urgency: string = 'NORMAL',
   ) {
-    // 1. Resolve pricing from DB or fallback
     const service = await this.prisma.services.findUnique({
       where: { service_id: serviceCode },
     });
 
-    const price = service?.price ?? 999; // Default fallback price of 999 INR
+    const price = service?.price ?? 999;
     const amountPaise = Math.round(price * 100);
 
     if (amountPaise < 100) {
       throw new BadRequestException('Payment amount must be at least 100 paise (1 INR)');
     }
 
-    // 2. Create case (service request) in the database with status 'pending_payment'
     const newCase = await this.prisma.cases.create({
       data: {
         client_id: userId,
@@ -48,7 +46,6 @@ export class CasesService {
       },
     });
 
-    // 3. Create Razorpay order
     let razorpayOrder;
     try {
       razorpayOrder = await this.razorpay.orders.create({
@@ -58,95 +55,54 @@ export class CasesService {
         notes: {
           caseId: newCase.id,
           serviceCode: serviceCode,
-          userId: userId,
         },
       });
-    } catch (error) {
-      // Clean up case if Razorpay order creation fails
-      await this.prisma.cases.delete({ where: { id: newCase.id } });
-      throw new BadRequestException('Failed to create Razorpay payment order: ' + (error as Error).message);
+    } catch (error: any) {
+      console.error('Failed to create Razorpay order:', error);
+      throw new BadRequestException(`Razorpay Order creation failed: ${error.message || 'Unknown error'}`);
     }
 
-    // 4. Save payment record
     await this.prisma.payments.create({
       data: {
         case_id: newCase.id,
         razorpay_order_id: razorpayOrder.id,
-        status: 'created',
         amount: price,
+        status: 'created',
       },
     });
 
     return {
       success: true,
-      process: {
-        id: newCase.id,
-        processCode: newCase.id, // Frontend uses processCode to display success info
-        status: newCase.status,
-      },
-      order: {
+      caseId: newCase.id,
+      razorpayOrder: {
         id: razorpayOrder.id,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
+        keyId: process.env.RAZORPAY_KEY_ID,
       },
-      keyId: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID_TEST || '',
     };
   }
 
   async getDashboard(userId: string) {
     const cases = await this.prisma.cases.findMany({
       where: { client_id: userId },
-    });
-
-    const totalServices = cases.length;
-    const activeServices = cases.filter((c: any) => c.status === 'paid').length;
-    const completedServices = cases.filter((c: any) => c.status === 'completed').length;
-
-    // Fetch verified payments
-    const caseIds = cases.map((c: any) => c.id);
-    const payments = await this.prisma.payments.findMany({
-      where: {
-        case_id: { in: caseIds },
-        status: 'verified',
+      include: {
+        professional: {
+          select: { id: true, name: true, email: true }
+        }
       },
-    });
-    const totalSpent = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-
-    // Fetch meetings
-    const meetings = await this.prisma.meetings.findMany({
-      where: {
-        case_id: { in: caseIds },
-      },
+      orderBy: { created_at: 'desc' },
     });
 
-    const upcomingMeetings = meetings.filter((m: any) => m.status === 'confirmed' || m.status === 'proposed');
-    const upcomingCount = upcomingMeetings.length;
-    const completedCount = meetings.filter((m: any) => m.status === 'completed').length;
-
-    const upcomingBookings = upcomingMeetings.map((m: any) => {
-      const parentCase = cases.find((c: any) => c.id === m.case_id);
-      return {
-        bookingId: m.id,
-        serviceName: parentCase?.case_type || 'Consultation',
-        expertName: 'Legal Expert',
-        bookingDate: m.scheduled_for ? { _seconds: Math.floor(m.scheduled_for.getTime() / 1000) } : null,
-        rate: 0,
-        status: m.status === 'confirmed' ? 'confirmed' : 'pending',
-      };
-    });
+    const activeCases = cases.filter((c: any) => c.status !== 'completed');
+    const completedCases = cases.filter((c: any) => c.status === 'completed');
 
     return {
       success: true,
-      dashboard: {
-        upcomingCount,
-        completedCount,
-        expertsConsulted: 0,
-        totalSpent,
-        upcomingBookings,
-        topExperts: [],
-        totalServices,
-        activeServices,
-        completedServices,
+      data: {
+        activeServicesCount: activeCases.length,
+        completedServicesCount: completedCases.length,
+        totalSpent: 0,
         pendingServiceDocuments: 0,
       },
     };
@@ -155,6 +111,11 @@ export class CasesService {
   async getServiceDetails(userId: string, caseId: string) {
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
+      include: {
+        professional: {
+          select: { id: true, name: true, email: true }
+        }
+      }
     });
 
     if (!serviceCase || serviceCase.client_id !== userId) {
@@ -165,22 +126,45 @@ export class CasesService {
       where: { service_id: serviceCase.case_type },
     });
 
+    const docs: any[] = await this.prisma.$queryRaw`
+      SELECT id, filename, storage_path, created_at, size_bytes
+      FROM case_documents
+      WHERE case_id = ${caseId}::uuid
+      ORDER BY created_at DESC
+    `.catch(() => []);
+
+    const uploadedDocs = (docs || []).map((d: any) => ({
+      documentId: d.id,
+      title: d.filename || "Uploaded Document",
+      name: d.filename || "Uploaded Document",
+      key: d.id,
+      fileUrl: d.storage_path,
+      status: "APPROVED",
+      createdAt: d.created_at,
+    }));
+
     return {
       success: true,
       service: {
         serviceId: serviceCase.id,
         serviceCode: serviceCase.case_type,
-        title: service?.title || serviceCase.case_type,
-        status: serviceCase.status === 'paid' ? 'ACTIVE' : 'ON_HOLD',
+        title: service?.title || (serviceCase.metadata as any)?.title || serviceCase.case_type,
+        status: serviceCase.status === 'paid' || serviceCase.status === 'in_progress' ? 'ACTIVE' : 'ON_HOLD',
+        assignedExpertId: serviceCase.professional_id,
+        assignedExpert: serviceCase.professional ? {
+          id: serviceCase.professional.id,
+          name: serviceCase.professional.name || serviceCase.professional.email,
+          email: serviceCase.professional.email
+        } : null,
         documentStats: {
-          totalRequired: 0,
-          uploaded: 0,
-          approved: 0,
+          totalRequired: uploadedDocs.length,
+          uploaded: uploadedDocs.length,
+          approved: uploadedDocs.length,
           pending: 0,
         },
         instructions: null,
         documentsRequired: [],
-        expertUploadedFiles: [],
+        expertUploadedFiles: uploadedDocs,
       },
     };
   }
@@ -188,6 +172,11 @@ export class CasesService {
   async getServices(userId: string) {
     const cases = await this.prisma.cases.findMany({
       where: { client_id: userId },
+      include: {
+        professional: {
+          select: { id: true, name: true, email: true }
+        }
+      },
       orderBy: { created_at: 'desc' },
     });
 
@@ -196,15 +185,21 @@ export class CasesService {
 
     const mappedCases = cases.map((c: any) => {
       const metadata = (c.metadata as any) || {};
-      const title = serviceMap.get(c.case_type) || metadata.serviceTitle || c.case_type;
+      const title = serviceMap.get(c.case_type) || metadata.title || metadata.serviceTitle || c.case_type;
 
       return {
         serviceId: c.id,
         serviceCode: c.case_type,
         title: title,
-        status: c.status === 'paid' ? 'ACTIVE' : 'ON_HOLD',
-        paymentStatus: c.status, // e.g. 'pending_payment', 'paid'
+        status: c.status === 'paid' || c.status === 'in_progress' ? 'ACTIVE' : 'ON_HOLD',
+        paymentStatus: c.status,
         createdAt: c.created_at,
+        assignedExpertId: c.professional_id,
+        assignedExpert: c.professional ? {
+          id: c.professional.id,
+          name: c.professional.name || c.professional.email,
+          email: c.professional.email
+        } : null,
         documentStats: {
           totalRequired: 0,
           uploaded: 0,

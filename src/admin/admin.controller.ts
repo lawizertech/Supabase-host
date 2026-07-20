@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { AdminService, AssignCaseDto } from './admin.service';
 
 @Controller('admin')
 export class AdminController {
@@ -19,9 +19,17 @@ export class AdminController {
 
   @Post('assign-case')
   async assignCase(
-    @Body() body: { caseId: string; professionalId: string },
+    @Body() body: AssignCaseDto,
   ) {
-    const updatedCase = await this.adminService.assignCase(body.caseId, body.professionalId);
+    const updatedCase = await this.adminService.assignCase(body);
+    return { success: true, data: updatedCase };
+  }
+
+  @Post('assign')
+  async assign(
+    @Body() body: AssignCaseDto,
+  ) {
+    const updatedCase = await this.adminService.assignCase(body);
     return { success: true, data: updatedCase };
   }
 

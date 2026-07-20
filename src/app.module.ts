@@ -8,7 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CasesModule } from './cases/cases.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
-import { ChatsModule } from './chats/chats.module';
+import { ExpertModule } from './expert/expert.module';
 
 @Module({
   imports: [
@@ -19,7 +19,7 @@ import { ChatsModule } from './chats/chats.module';
     CasesModule,
     PaymentsModule,
     AdminModule,
-    ChatsModule,
+    ExpertModule,
   ],
   controllers: [AppController],
   providers: [AppService],

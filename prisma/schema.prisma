@@ -211,6 +211,10 @@ model chat_messages {
   attachment_ref String?         @db.Uuid
   created_at     DateTime?       @default(now())
   read_at        DateTime?
+  flagged_by     String[]        @default([]) @db.Uuid
+  sender_role    String?
+  message_type   String?         @default("text")
+  deleted_at     DateTime?
 
   case       cases           @relation(fields: [case_id], references: [id], onDelete: Cascade)
   sender     profiles?       @relation(fields: [sender_id], references: [id])
