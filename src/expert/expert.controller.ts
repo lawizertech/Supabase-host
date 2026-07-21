@@ -27,38 +27,41 @@ export class ExpertController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
       }
+        return {
+          success: true,
+          expert: loginResult.data,
+          token: loginResult.accessToken || loginResult.token,
+          refreshToken: loginResult.refreshToken,
+        };
+      }
+
+      const token = body.idToken || authHeader?.replace('Bearer ', '');
+      if (!token) {
+        throw new UnauthorizedException('No token or credentials provided');
+      }
+
+      const loginResult = await this.authService.login(token, 'professional');
+      if (!loginResult.success) {
+        throw new UnauthorizedException(loginResult.message);
+      }
+
+      const refreshToken = body.refreshToken;
+      if (refreshToken && res) {
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+      }
+
       return {
         success: true,
         expert: loginResult.data,
-        token: loginResult.accessToken || loginResult.token,
+        token: loginResult.token,
+        refreshToken: refreshToken,
       };
-    }
-
-    const token = body.idToken || authHeader?.replace('Bearer ', '');
-    if (!token) {
-      throw new UnauthorizedException('No token or credentials provided');
-    }
-
-    const loginResult = await this.authService.login(token, 'professional');
-    if (!loginResult.success) {
-      throw new UnauthorizedException(loginResult.message);
-    }
-
-    if (body.refreshToken && res) {
-      res.cookie('refreshToken', body.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-    }
-
-    return {
-      success: true,
-      expert: loginResult.data,
-      token: loginResult.token,
-    };
   }
 
   private async getUserIdFromHeader(authHeader: string): Promise<string> {
