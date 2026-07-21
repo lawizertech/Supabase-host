@@ -1,4 +1,5 @@
-import { Controller, Get, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, UnauthorizedException, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ExpertService } from './expert.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -8,6 +9,57 @@ export class ExpertController {
     private readonly expertService: ExpertService,
     private readonly authService: AuthService,
   ) {}
+
+  @Post('login')
+  async login(
+    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string },
+    @Headers('authorization') authHeader?: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    if (body.email && body.password) {
+      const loginResult = await this.authService.loginWithPassword(body.email, body.password);
+      if (loginResult.refreshToken && res) {
+        res.cookie('refreshToken', loginResult.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+      }
+      return {
+        success: true,
+        expert: loginResult.data,
+        token: loginResult.accessToken || loginResult.token,
+      };
+    }
+
+    const token = body.idToken || authHeader?.replace('Bearer ', '');
+    if (!token) {
+      throw new UnauthorizedException('No token or credentials provided');
+    }
+
+    const loginResult = await this.authService.login(token, 'professional');
+    if (!loginResult.success) {
+      throw new UnauthorizedException(loginResult.message);
+    }
+
+    if (body.refreshToken && res) {
+      res.cookie('refreshToken', body.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    return {
+      success: true,
+      expert: loginResult.data,
+      token: loginResult.token,
+    };
+  }
 
   private async getUserIdFromHeader(authHeader: string): Promise<string> {
     if (!authHeader) {

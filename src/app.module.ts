@@ -9,6 +9,7 @@ import { CasesModule } from './cases/cases.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { ExpertModule } from './expert/expert.module';
+import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ExpertModule } from './expert/expert.module';
     PaymentsModule,
     AdminModule,
     ExpertModule,
+    StreamModule,
   ],
   controllers: [AppController],
   providers: [AppService],
