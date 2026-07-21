@@ -34,6 +34,14 @@ export class AdminController {
     return { success: true, data: experts };
   }
 
+  @Post('assign-service')
+  async assignService(
+    @Body() body: any,
+  ) {
+    const updatedCase = await this.adminService.assignService(body);
+    return { success: true, data: updatedCase };
+  }
+
   @Post('assign-case')
   async assignCase(
     @Body() body: AssignCaseDto,
@@ -47,6 +55,14 @@ export class AdminController {
     @Body() body: AssignCaseDto,
   ) {
     const updatedCase = await this.adminService.assignCase(body);
+    return { success: true, data: updatedCase };
+  }
+
+  @Post('cases/update-stages')
+  async updateStages(
+    @Body() body: { caseId: string; stages: any[]; currentStageId?: string },
+  ) {
+    const updatedCase = await this.adminService.updateCaseStages(body.caseId, body.stages, body.currentStageId);
     return { success: true, data: updatedCase };
   }
 
