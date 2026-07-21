@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import * as cookieParser from 'cookie-parser';
+import * as cookieParserImport from 'cookie-parser';
+const cookieParser = (cookieParserImport as any).default || cookieParserImport;
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 
