@@ -10,6 +10,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { ExpertModule } from './expert/expert.module';
 import { StreamModule } from './stream/stream.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { StreamModule } from './stream/stream.module';
     AdminModule,
     ExpertModule,
     StreamModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

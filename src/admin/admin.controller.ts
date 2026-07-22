@@ -34,6 +34,14 @@ export class AdminController {
     return { success: true, data: experts };
   }
 
+  @Post('experts')
+  async createExpert(
+    @Body() body: any,
+  ) {
+    const expert = await this.adminService.createExpert(body);
+    return { success: true, data: expert };
+  }
+
   @Post('assign-service')
   async assignService(
     @Body() body: any,

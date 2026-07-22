@@ -28,6 +28,17 @@ export interface AssignCaseDto {
   currentStageId?: string;
 }
 
+export interface CreateExpertDto {
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  professionalStatus?: string;
+  city?: string;
+  state?: string;
+  photoUrl?: string;
+}
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -43,6 +54,54 @@ export class AdminService {
     return this.prisma.profiles.findMany({
       where: { role: { in: ['expert', 'professional', 'EXPERT', 'PROFESSIONAL', 'LAWYER', 'lawyer'] } },
       orderBy: { created_at: 'desc' },
+    });
+  }
+
+  async createExpert(dto: CreateExpertDto) {
+    const { name, email, phone, professionalStatus, city, state, photoUrl, id } = dto;
+    if (!name || !email) {
+      throw new BadRequestException('Name and email are required to create an expert.');
+    }
+
+    const expertId = id || crypto.randomUUID();
+
+    const existing = await this.prisma.profiles.findFirst({
+      where: {
+        OR: [
+          { id: expertId },
+          { email: email },
+        ],
+      },
+    });
+
+    if (existing) {
+      return this.prisma.profiles.update({
+        where: { id: existing.id },
+        data: {
+          role: 'professional',
+          name: name || existing.name,
+          phone: phone || existing.phone,
+          professional_status: professionalStatus || existing.professional_status || 'VERIFIED_EXPERT',
+          city: city || existing.city,
+          state: state || existing.state,
+          photo_url: photoUrl || existing.photo_url,
+          updated_at: new Date(),
+        },
+      });
+    }
+
+    return this.prisma.profiles.create({
+      data: {
+        id: expertId,
+        role: 'professional',
+        name,
+        email,
+        phone: phone || null,
+        professional_status: professionalStatus || 'VERIFIED_EXPERT',
+        city: city || null,
+        state: state || null,
+        photo_url: photoUrl || null,
+      },
     });
   }
 
