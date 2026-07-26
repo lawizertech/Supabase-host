@@ -33,16 +33,20 @@ export class CasesService {
       throw new BadRequestException('Payment amount must be at least 100 paise (1 INR)');
     }
 
+    const defaultStages = [
+      { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', description: 'Fee paid via gateway', status: 'pending' },
+      { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', description: 'Assigned to qualified legal professional', status: 'pending' },
+      { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', description: 'Client & legal documents verified', status: 'pending' },
+      { id: 'stage-4', key: 'in_progress', title: 'Work / Portal Filing In Progress', description: 'Application processed on official portal', status: 'pending' },
+      { id: 'stage-5', key: 'completed', title: 'Service Completed', description: 'Certificate / Final draft issued', status: 'pending' },
+    ];
+
     const newCase = await this.prisma.cases.create({
       data: {
         client_id: userId,
         case_type: serviceCode,
         status: 'pending_payment',
-        metadata: {
-          clientDetails,
-          urgency,
-          serviceTitle: service?.title || serviceCode,
-        },
+        stages: defaultStages as any,
       },
     });
 
@@ -143,19 +147,23 @@ export class CasesService {
       createdAt: d.created_at,
     }));
 
+    const stages = serviceCase.stages || [];
+
     return {
       success: true,
       service: {
         serviceId: serviceCase.id,
         serviceCode: serviceCase.case_type,
-        title: service?.title || (serviceCase.metadata as any)?.title || serviceCase.case_type,
-        status: serviceCase.status === 'paid' || serviceCase.status === 'in_progress' ? 'ACTIVE' : 'ON_HOLD',
+        title: service?.title || serviceCase.case_type,
+        status: serviceCase.status === 'completed' ? 'COMPLETED' : (serviceCase.status === 'pending_payment' ? 'ON_HOLD' : 'ACTIVE'),
+        macroStatus: serviceCase.status,
         assignedExpertId: serviceCase.professional_id,
         assignedExpert: serviceCase.professional ? {
           id: serviceCase.professional.id,
           name: serviceCase.professional.name || serviceCase.professional.email,
           email: serviceCase.professional.email
         } : null,
+        stages: stages,
         documentStats: {
           totalRequired: uploadedDocs.length,
           uploaded: uploadedDocs.length,
@@ -184,14 +192,15 @@ export class CasesService {
     const serviceMap = new Map(services.map((s: any) => [s.service_id, s.title]));
 
     const mappedCases = cases.map((c: any) => {
-      const metadata = (c.metadata as any) || {};
-      const title = serviceMap.get(c.case_type) || metadata.title || metadata.serviceTitle || c.case_type;
+      const title = serviceMap.get(c.case_type) || c.case_type;
+      const stages = c.stages || [];
 
       return {
         serviceId: c.id,
         serviceCode: c.case_type,
         title: title,
-        status: c.status === 'paid' || c.status === 'in_progress' ? 'ACTIVE' : 'ON_HOLD',
+        status: c.status === 'completed' ? 'COMPLETED' : (c.status === 'pending_payment' ? 'ON_HOLD' : 'ACTIVE'),
+        macroStatus: c.status,
         paymentStatus: c.status,
         createdAt: c.created_at,
         assignedExpertId: c.professional_id,
@@ -200,6 +209,7 @@ export class CasesService {
           name: c.professional.name || c.professional.email,
           email: c.professional.email
         } : null,
+        stages: stages,
         documentStats: {
           totalRequired: 0,
           uploaded: 0,

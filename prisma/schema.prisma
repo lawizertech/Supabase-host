@@ -51,12 +51,12 @@ model profiles {
   created_at          DateTime? @default(now())
   updated_at          DateTime? @default(now())
 
-  cases_as_client       cases[]              @relation("cases_client_idToprofiles")
-  cases_as_professional cases[]              @relation("cases_professional_idToprofiles")
+  cases_as_client       cases[]                @relation("cases_client_idToprofiles")
+  cases_as_professional cases[]                @relation("cases_professional_idToprofiles")
   call_events           call_events[]
   call_participants     call_participants[]
-  calls_initiated       calls[]              @relation("calls_initiated_byToprofiles")
-  calls_accepted        calls[]              @relation("calls_accepted_byToprofiles")
+  calls_initiated       calls[]                @relation("calls_initiated_byToprofiles")
+  calls_accepted        calls[]                @relation("calls_accepted_byToprofiles")
   case_documents        case_documents[]
   case_timeline         case_timeline[]
   chat_messages         chat_messages[]
@@ -73,7 +73,7 @@ model cases {
   professional_id String?   @db.Uuid
   case_type       String
   status          String    @default("created")
-  metadata        Json?     @default("{}")
+  stages          Json?     @default("[]")
   created_at      DateTime? @default(now())
   updated_at      DateTime? @default(now())
 
@@ -94,26 +94,26 @@ model cases {
 }
 
 model calls {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  case_id          String    @db.Uuid
-  initiated_by     String    @db.Uuid
-  mode             String
-  accepted_by      String?   @db.Uuid
-  status           String    @default("ringing")
-  started_at       DateTime? @default(now())
-  connected_at     DateTime?
-  ended_at         DateTime?
-  end_reason       String?
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_id           String    @db.Uuid
+  initiated_by      String    @db.Uuid
+  mode              String
+  accepted_by       String?   @db.Uuid
+  status            String    @default("ringing")
+  started_at        DateTime? @default(now())
+  connected_at      DateTime?
+  ended_at          DateTime?
+  end_reason        String?
   livekit_room_name String?
-  recording_enabled Boolean? @default(false)
-  created_at       DateTime? @default(now())
+  recording_enabled Boolean?  @default(false)
+  created_at        DateTime? @default(now())
 
-  case                                  cases               @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  initiator                             profiles            @relation("calls_initiated_byToprofiles", fields: [initiated_by], references: [id], onDelete: Cascade)
-  acceptor                              profiles?           @relation("calls_accepted_byToprofiles", fields: [accepted_by], references: [id])
-  call_events                           call_events[]
-  call_participants                     call_participants[]
-  call_recordings                       call_recordings[]
+  case              cases               @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  initiator         profiles            @relation("calls_initiated_byToprofiles", fields: [initiated_by], references: [id], onDelete: Cascade)
+  acceptor          profiles?           @relation("calls_accepted_byToprofiles", fields: [accepted_by], references: [id])
+  call_events       call_events[]
+  call_participants call_participants[]
+  call_recordings   call_recordings[]
 
   @@index([case_id])
   @@index([initiated_by])
@@ -179,8 +179,8 @@ model case_documents {
   size_bytes   BigInt?
   created_at   DateTime? @default(now())
 
-  case    cases     @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  profile profiles? @relation(fields: [uploaded_by], references: [id])
+  case          cases           @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  profile       profiles?       @relation(fields: [uploaded_by], references: [id])
   chat_messages chat_messages[]
 
   @@index([case_id])
@@ -204,16 +204,16 @@ model case_timeline {
 }
 
 model chat_messages {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  case_id        String          @db.Uuid
-  sender_id      String?         @db.Uuid
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_id        String    @db.Uuid
+  sender_id      String?   @db.Uuid
   text           String?
-  attachment_ref String?         @db.Uuid
-  created_at     DateTime?       @default(now())
+  attachment_ref String?   @db.Uuid
+  created_at     DateTime? @default(now())
   read_at        DateTime?
-  flagged_by     String[]        @default([]) @db.Uuid
+  flagged_by     String[]  @default([]) @db.Uuid
   sender_role    String?
-  message_type   String?         @default("text")
+  message_type   String?   @default("text")
   deleted_at     DateTime?
 
   case       cases           @relation(fields: [case_id], references: [id], onDelete: Cascade)
@@ -243,12 +243,12 @@ model meetings {
 }
 
 model meeting_participants {
-  meeting_id String @db.Uuid
-  profile_id String @db.Uuid
+  meeting_id String  @db.Uuid
+  profile_id String  @db.Uuid
   role       String? @default("attendee")
 
-  meeting  meetings @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
-  profile  profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  meeting meetings @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
+  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 
   @@id([meeting_id, profile_id])
   @@schema("public")

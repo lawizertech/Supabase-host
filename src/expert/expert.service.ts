@@ -55,9 +55,10 @@ export class ExpertService {
         assignedCasesCount: cases.length,
         cases: cases.map((c: any) => ({
           caseId: c.id,
-          title: (c.metadata as any)?.title || c.case_type,
+          title: c.case_type,
           caseType: c.case_type,
           status: c.status,
+          stages: c.stages || [],
           createdAt: c.created_at,
           client: c.client ? {
             id: c.client.id,
@@ -87,8 +88,7 @@ export class ExpertService {
     });
 
     const mapped = cases.map((c: any) => {
-      const metadata = (c.metadata as any) || {};
-      const title = metadata.title || c.case_type || `Case #${c.id.substring(0, 8).toUpperCase()}`;
+      const title = c.case_type || `Case #${c.id.substring(0, 8).toUpperCase()}`;
 
       return {
         bookingId: c.id,

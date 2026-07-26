@@ -144,13 +144,7 @@ export class AdminService {
         professional_id: professionalId || null,
         case_type: caseType || 'Legal Service',
         status: 'in_progress',
-        metadata: {
-          title: title || caseType || 'Assigned Legal Service',
-          stages: formattedStages,
-          currentStageId: activeStageId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        stages: formattedStages as any,
       },
       include: {
         client: {
@@ -172,18 +166,11 @@ export class AdminService {
       throw new BadRequestException(`Case not found with ID ${caseId}`);
     }
 
-    const currentMetadata = (typeof existingCase.metadata === 'object' && existingCase.metadata !== null) ? existingCase.metadata : {};
-    const activeStageId = currentStageId || stages.find((s) => s.status === 'in_progress')?.id || stages[0]?.id;
-
     return this.prisma.cases.update({
       where: { id: caseId },
       data: {
-        metadata: {
-          ...currentMetadata,
-          stages: stages,
-          currentStageId: activeStageId,
-          updated_at: new Date().toISOString(),
-        },
+        stages: stages as any,
+        updated_at: new Date(),
       },
       include: {
         client: { select: { id: true, name: true, email: true } },
@@ -231,20 +218,23 @@ export class AdminService {
       });
 
       if (existingCase) {
-        const prevMetadata = typeof existingCase.metadata === 'object' && existingCase.metadata !== null ? existingCase.metadata : {};
+        const existingStages = (existingCase.stages as any[]) || [
+          { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
+          { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
+          { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
+          { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
+          { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+        ];
+        const updatedStages = stages || existingStages.map((s: any) => s.key === 'lawyer_assigned' ? { ...s, status: 'completed' } : s);
+
         return this.prisma.cases.update({
           where: { id: caseId },
           data: {
             professional_id: professionalId,
             ...(clientId ? { client_id: clientId } : {}),
             status: 'in_progress',
-            metadata: {
-              ...prevMetadata,
-              title: title,
-              ...(stages ? { stages } : {}),
-              ...(currentStageId ? { currentStageId } : {}),
-              updated_at: new Date().toISOString(),
-            },
+            stages: updatedStages as any,
+            updated_at: new Date(),
           },
           include: {
             client: {
@@ -261,6 +251,14 @@ export class AdminService {
         throw new BadRequestException(`Case not found with ID ${caseId} and no clientId provided to create a new case.`);
       }
 
+      const defaultStages = stages || [
+        { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
+        { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
+        { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
+        { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
+        { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+      ];
+
       return this.prisma.cases.create({
         data: {
           id: caseId,
@@ -268,12 +266,7 @@ export class AdminService {
           professional_id: professionalId,
           case_type: caseType,
           status: 'in_progress',
-          metadata: {
-            title: title,
-            ...(stages ? { stages } : {}),
-            ...(currentStageId ? { currentStageId } : {}),
-            created_at: new Date().toISOString(),
-          },
+          stages: defaultStages as any,
         },
         include: {
           client: {
@@ -290,18 +283,21 @@ export class AdminService {
       throw new BadRequestException('Either caseId or clientId must be provided to assign a case.');
     }
 
+    const defaultStages = stages || [
+      { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
+      { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
+      { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
+      { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
+      { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+    ];
+
     return this.prisma.cases.create({
       data: {
         client_id: clientId,
         professional_id: professionalId,
         case_type: caseType,
         status: 'in_progress',
-        metadata: {
-          title: title,
-          ...(stages ? { stages } : {}),
-          ...(currentStageId ? { currentStageId } : {}),
-          created_at: new Date().toISOString(),
-        },
+        stages: defaultStages as any,
       },
       include: {
         client: {

@@ -74,6 +74,14 @@ export class AdminController {
     return { success: true, data: updatedCase };
   }
 
+  @Post('update-stages')
+  async updateStagesAlias(
+    @Body() body: { caseId: string; stages: any[]; currentStageId?: string },
+  ) {
+    const updatedCase = await this.adminService.updateCaseStages(body.caseId, body.stages, body.currentStageId);
+    return { success: true, data: updatedCase };
+  }
+
   @Get('cases')
   async getAllCases() {
     const cases = await this.adminService.getAllCases();
