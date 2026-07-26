@@ -28,10 +28,22 @@ export interface AssignCaseDto {
   currentStageId?: string;
 }
 
+export interface CreateClientDto {
+  id?: string;
+  name: string;
+  email: string;
+  password?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  photoUrl?: string;
+}
+
 export interface CreateExpertDto {
   id?: string;
   name: string;
   email: string;
+  password?: string;
   phone?: string;
   professionalStatus?: string;
   city?: string;
@@ -41,7 +53,133 @@ export interface CreateExpertDto {
 
 @Injectable()
 export class AdminService {
+  private readonly supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  private readonly supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
   constructor(private readonly prisma: PrismaService) {}
+
+  private async createSupabaseAuthUser(email: string, password?: string, name?: string, phone?: string) {
+    if (!this.supabaseUrl || !this.supabaseServiceRoleKey) {
+      return { uid: null, password: null };
+    }
+
+    const assignedPassword = password || `Lawizer@${Math.floor(100000 + Math.random() * 900000)}`;
+
+    try {
+      const res = await fetch(`${this.supabaseUrl}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: this.supabaseServiceRoleKey,
+          Authorization: `Bearer ${this.supabaseServiceRoleKey}`,
+        },
+        body: JSON.stringify({
+          email,
+          password: assignedPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: name || '',
+            full_name: name || '',
+            phone: phone || '',
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        console.warn('Supabase Admin User creation notice:', errJson?.msg || errJson?.message || res.statusText);
+        return { uid: null, password: assignedPassword };
+      }
+
+      const createdUser = await res.json();
+      const uid = createdUser?.id || createdUser?.user?.id || null;
+      return { uid, password: assignedPassword };
+    } catch (err: any) {
+      console.warn('Failed to call Supabase Auth Admin API:', err.message);
+      return { uid: null, password: assignedPassword };
+    }
+  }
+
+  async createClient(dto: CreateClientDto) {
+    const { name, email, password, phone, city, state, photoUrl, id } = dto;
+    if (!name || !email) {
+      throw new BadRequestException('Name and email are required to create a client.');
+    }
+
+    let clientId = id;
+
+    const existing = await this.prisma.profiles.findFirst({
+      where: {
+        OR: [
+          ...(clientId ? [{ id: clientId }] : []),
+          { email: email },
+        ],
+      },
+    });
+
+    let assignedPassword = password;
+
+    if (existing) {
+      const updatedProfile = await this.prisma.profiles.update({
+        where: { id: existing.id },
+        data: {
+          role: 'client',
+          name: name || existing.name,
+          phone: phone || existing.phone,
+          city: city || existing.city,
+          state: state || existing.state,
+          photo_url: photoUrl || existing.photo_url,
+          has_password: true,
+          updated_at: new Date(),
+        },
+      });
+
+      return {
+        ...updatedProfile,
+        initialPassword: assignedPassword || 'Preserved existing password',
+      };
+    }
+
+    const { uid: authUid, password: generatedPassword } = await this.createSupabaseAuthUser(email, password, name, phone);
+    assignedPassword = generatedPassword || password || 'Lawizer@123456';
+
+    if (authUid) {
+      clientId = authUid;
+    } else if (!clientId) {
+      clientId = crypto.randomUUID();
+    }
+
+    const createdProfile = await this.prisma.profiles.upsert({
+      where: { id: clientId },
+      update: {
+        role: 'client',
+        name,
+        email,
+        phone: phone || null,
+        city: city || null,
+        state: state || null,
+        photo_url: photoUrl || null,
+        has_password: true,
+        updated_at: new Date(),
+      },
+      create: {
+        id: clientId,
+        name,
+        email,
+        phone: phone || null,
+        role: 'client',
+        city: city || null,
+        state: state || null,
+        photo_url: photoUrl || null,
+        has_password: true,
+      },
+    });
+
+    return {
+      ...createdProfile,
+      initialPassword: assignedPassword,
+    };
+  }
 
   async getAllUsers() {
     return this.prisma.profiles.findMany({
@@ -58,17 +196,17 @@ export class AdminService {
   }
 
   async createExpert(dto: CreateExpertDto) {
-    const { name, email, phone, professionalStatus, city, state, photoUrl, id } = dto;
+    const { name, email, password, phone, professionalStatus, city, state, photoUrl, id } = dto;
     if (!name || !email) {
       throw new BadRequestException('Name and email are required to create an expert.');
     }
 
-    const expertId = id || crypto.randomUUID();
+    let expertId = id;
 
     const existing = await this.prisma.profiles.findFirst({
       where: {
         OR: [
-          { id: expertId },
+          ...(expertId ? [{ id: expertId }] : []),
           { email: email },
         ],
       },
@@ -90,13 +228,32 @@ export class AdminService {
       });
     }
 
-    return this.prisma.profiles.create({
-      data: {
-        id: expertId,
+    const { uid: authUid, password: generatedPassword } = await this.createSupabaseAuthUser(email, password, name, phone);
+    if (authUid) {
+      expertId = authUid;
+    } else if (!expertId) {
+      expertId = crypto.randomUUID();
+    }
+
+    return this.prisma.profiles.upsert({
+      where: { id: expertId },
+      update: {
         role: 'professional',
         name,
         email,
         phone: phone || null,
+        professional_status: professionalStatus || 'VERIFIED_EXPERT',
+        city: city || null,
+        state: state || null,
+        photo_url: photoUrl || null,
+        updated_at: new Date(),
+      },
+      create: {
+        id: expertId,
+        name,
+        email,
+        phone: phone || null,
+        role: 'professional',
         professional_status: professionalStatus || 'VERIFIED_EXPERT',
         city: city || null,
         state: state || null,

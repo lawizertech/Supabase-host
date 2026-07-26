@@ -28,6 +28,22 @@ export class AdminController {
     return { success: true, data: users };
   }
 
+  @Post('clients')
+  async createClient(
+    @Body() body: any,
+  ) {
+    const client = await this.adminService.createClient(body);
+    return { success: true, data: client };
+  }
+
+  @Post('users')
+  async createClientAlias(
+    @Body() body: any,
+  ) {
+    const client = await this.adminService.createClient(body);
+    return { success: true, data: client };
+  }
+
   @Get('experts')
   async getAllExperts() {
     const experts = await this.adminService.getAllExperts();
