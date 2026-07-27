@@ -510,4 +510,81 @@ export class AdminService {
       orderBy: { created_at: 'desc' },
     });
   }
+
+  async getCaseChatMessages(
+    caseId: string,
+    limit?: number,
+    before?: string,
+    beforeId?: string,
+  ) {
+    let beforeDate: Date | undefined;
+    const isUuid = (str?: string) =>
+      str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
+    const targetBeforeId = beforeId || (isUuid(before) ? before : undefined);
+
+    if (targetBeforeId) {
+      const refMsg = await this.prisma.chat_messages.findUnique({
+        where: { id: targetBeforeId },
+        select: { created_at: true },
+      });
+      if (refMsg?.created_at) {
+        beforeDate = refMsg.created_at;
+      }
+    } else if (before) {
+      const parsed = new Date(before);
+      if (!isNaN(parsed.getTime())) {
+        beforeDate = parsed;
+      }
+    }
+
+    const take = limit && !isNaN(limit) && limit > 0 ? Number(limit) : undefined;
+
+    const whereCondition: any = { case_id: caseId };
+    if (beforeDate) {
+      whereCondition.created_at = { lt: beforeDate };
+    }
+
+    if (beforeDate || take) {
+      const effectiveTake = take || 50;
+      const messages = await this.prisma.chat_messages.findMany({
+        where: whereCondition,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              photo_url: true,
+            },
+          },
+          attachment: true,
+        },
+        orderBy: { created_at: 'desc' },
+        take: effectiveTake,
+      });
+      return messages.reverse();
+    }
+
+    return this.prisma.chat_messages.findMany({
+      where: whereCondition,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            photo_url: true,
+          },
+        },
+        attachment: true,
+      },
+      orderBy: { created_at: 'asc' },
+    });
+  }
 }
+
+
+

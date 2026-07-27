@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { AdminService, AssignCaseDto } from './admin.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -104,9 +104,35 @@ export class AdminController {
     return { success: true, data: cases };
   }
 
+  @Get('case/:id/chat')
+  async getCaseChat(
+    @Param('id') caseId: string,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+    @Query('beforeId') beforeId?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const messages = await this.adminService.getCaseChatMessages(caseId, limitNum, before, beforeId);
+    return { success: true, data: messages };
+  }
+
+  @Get('cases/:id/chat')
+  async getCasesChatAlias(
+    @Param('id') caseId: string,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
+    @Query('beforeId') beforeId?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const messages = await this.adminService.getCaseChatMessages(caseId, limitNum, before, beforeId);
+    return { success: true, data: messages };
+  }
+
+
   @Get('transactions')
   async getAllTransactions() {
     const transactions = await this.adminService.getAllTransactions();
     return { success: true, data: transactions };
   }
 }
+
