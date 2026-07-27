@@ -221,4 +221,51 @@ export class CasesService {
 
     return { success: true, services: mappedCases };
   }
+
+  async uploadUserDocument(
+    userId: string,
+    caseId: string,
+    dto: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+  ) {
+    const serviceCase = await this.prisma.cases.findUnique({
+      where: { id: caseId },
+    });
+
+    if (!serviceCase) {
+      throw new BadRequestException(`Case with ID ${caseId} not found`);
+    }
+
+    if (serviceCase.client_id !== userId) {
+      throw new BadRequestException('You are not authorized to upload documents for this case');
+    }
+
+    const doc = await this.prisma.case_documents.create({
+      data: {
+        case_id: caseId,
+        uploaded_by: userId,
+        filename: dto.filename || 'Client Document',
+        storage_path: dto.storagePath,
+        file_type: dto.fileType || 'application/octet-stream',
+        size_bytes: dto.sizeBytes ? BigInt(dto.sizeBytes) : null,
+      },
+      include: {
+        profile: { select: { id: true, name: true, email: true, role: true } },
+      },
+    });
+
+    return {
+      id: doc.id,
+      caseId: doc.case_id,
+      name: doc.filename,
+      url: doc.storage_path,
+      fileUrl: doc.storage_path,
+      documentUrl: doc.storage_path,
+      storagePath: doc.storage_path,
+      fileType: doc.file_type,
+      sizeBytes: doc.size_bytes ? Number(doc.size_bytes) : 0,
+      createdAt: doc.created_at,
+      uploadedBy: doc.profile,
+    };
+  }
 }
+

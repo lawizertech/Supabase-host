@@ -129,10 +129,27 @@ export class AdminController {
   }
 
 
+  @Get('case/:id/documents')
+  async getCaseDocuments(
+    @Param('id') caseId: string,
+  ) {
+    const result = await this.adminService.getCaseDocuments(caseId);
+    return { success: true, data: result.allDocuments, ...result };
+  }
+
+  @Get('cases/:id/documents')
+  async getCasesDocumentsAlias(
+    @Param('id') caseId: string,
+  ) {
+    const result = await this.adminService.getCaseDocuments(caseId);
+    return { success: true, data: result.allDocuments, ...result };
+  }
+
   @Get('transactions')
   async getAllTransactions() {
     const transactions = await this.adminService.getAllTransactions();
     return { success: true, data: transactions };
   }
 }
+
 

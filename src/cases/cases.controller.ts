@@ -71,4 +71,35 @@ export class CasesController {
     const userData = await this.authService.verifySupabaseToken(token);
     return this.casesService.getServices(userData.id);
   }
+
+  @Post('cases/:id/documents')
+  async uploadUserDocument(
+    @Headers('authorization') authHeader: string,
+    @Param('id') caseId: string,
+    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+  ) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    const document = await this.casesService.uploadUserDocument(userData.id, caseId, body);
+    return { success: true, document };
+  }
+
+  @Post('services/:id/documents')
+  async uploadUserServiceDocumentAlias(
+    @Headers('authorization') authHeader: string,
+    @Param('id') caseId: string,
+    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+  ) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization token missing');
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userData = await this.authService.verifySupabaseToken(token);
+    const document = await this.casesService.uploadUserDocument(userData.id, caseId, body);
+    return { success: true, document };
+  }
 }
+

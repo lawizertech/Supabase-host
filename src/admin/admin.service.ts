@@ -584,7 +584,61 @@ export class AdminService {
       orderBy: { created_at: 'asc' },
     });
   }
+
+  async getCaseDocuments(caseId: string) {
+    const serviceCase = await this.prisma.cases.findUnique({
+      where: { id: caseId },
+      select: { client_id: true, professional_id: true },
+    });
+
+    const docs = await this.prisma.case_documents.findMany({
+      where: { case_id: caseId },
+      orderBy: { created_at: 'desc' },
+      include: {
+        profile: {
+          select: { id: true, name: true, email: true, role: true },
+        },
+      },
+    });
+
+    const formattedDocs = docs.map((d: any) => {
+      const uploaderRole = (d.profile?.role || '').toLowerCase();
+      const isClient = d.uploaded_by === serviceCase?.client_id || uploaderRole === 'client';
+      const isExpert = d.uploaded_by === serviceCase?.professional_id || ['expert', 'professional', 'lawyer'].includes(uploaderRole);
+
+      return {
+        id: d.id,
+        caseId: d.case_id,
+        name: d.filename || 'Case Document',
+        url: d.storage_path,
+        fileUrl: d.storage_path,
+        documentUrl: d.storage_path,
+        storagePath: d.storage_path,
+        fileType: d.file_type,
+        sizeBytes: d.size_bytes ? Number(d.size_bytes) : 0,
+        createdAt: d.created_at,
+        uploadedBy: d.profile,
+        uploadedByType: isClient ? 'client' : isExpert ? 'expert' : 'unknown',
+      };
+    });
+
+    const clientDocs = formattedDocs.filter((d: any) => d.uploadedByType === 'client');
+    const expertDocs = formattedDocs.filter((d: any) => d.uploadedByType === 'expert');
+
+    return {
+      allDocuments: formattedDocs,
+      clientDocuments: clientDocs,
+      expertDocuments: expertDocs,
+      summary: {
+        total: formattedDocs.length,
+        clientUploadedCount: clientDocs.length,
+        expertUploadedCount: expertDocs.length,
+      },
+    };
+  }
 }
+
+
 
 
 

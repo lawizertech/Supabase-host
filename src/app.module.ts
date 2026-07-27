@@ -11,6 +11,7 @@ import { AdminModule } from './admin/admin.module';
 import { ExpertModule } from './expert/expert.module';
 import { StreamModule } from './stream/stream.module';
 import { DocumentsModule } from './documents/documents.module';
+import { CloudinaryModule } from './storage/cloudinary.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DocumentsModule } from './documents/documents.module';
     ExpertModule,
     StreamModule,
     DocumentsModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

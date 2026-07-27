@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Headers, UnauthorizedException, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, Param, UnauthorizedException, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ExpertService } from './expert.service';
 import { AuthService } from '../auth/auth.service';
@@ -96,4 +96,26 @@ export class ExpertController {
     const userId = await this.getUserIdFromHeader(authHeader);
     return this.expertService.getConsultations(userId);
   }
+
+  @Post('cases/:id/documents')
+  async uploadExpertDocument(
+    @Headers('authorization') authHeader: string,
+    @Param('id') caseId: string,
+    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+  ) {
+    const userId = await this.getUserIdFromHeader(authHeader);
+    const document = await this.expertService.uploadExpertDocument(userId, caseId, body);
+    return { success: true, document };
+  }
+
+  @Post('upload-document')
+  async uploadExpertDocumentBody(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { caseId: string; filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+  ) {
+    const userId = await this.getUserIdFromHeader(authHeader);
+    const document = await this.expertService.uploadExpertDocument(userId, body.caseId, body);
+    return { success: true, document };
+  }
 }
+
