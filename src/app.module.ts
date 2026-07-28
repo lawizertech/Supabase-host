@@ -13,6 +13,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { CloudinaryModule } from './storage/cloudinary.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     CloudinaryModule,
     MeetingsModule,
     NotificationsModule,
+    StreamModule,
   ],
   controllers: [AppController],
   providers: [AppService],
