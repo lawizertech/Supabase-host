@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException, Headers } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UnauthorizedException, Headers } from '@nestjs/common';
 import { MeetingsService } from './meetings.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -28,5 +28,14 @@ export class MeetingsController {
   ) {
     const userId = await this.getUserId(authHeader);
     return this.meetingsService.createMeetingSession(userId, body.caseId, body.title);
+  }
+
+  @Get(':caseId/recordings')
+  async getRecordings(
+    @Headers('authorization') authHeader: string,
+    @Param('caseId') caseId: string,
+  ) {
+    const userId = await this.getUserId(authHeader);
+    return this.meetingsService.getRecordingsForCase(userId, caseId);
   }
 }

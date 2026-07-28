@@ -17,6 +17,8 @@ export class StreamController {
     }
 
     const token = this.streamService.generateUserToken(userId);
-    return { token };
+    const apiKey = this.streamService.getApiKey();
+    
+    return { token, apiKey };
   }
 }

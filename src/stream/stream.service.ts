@@ -28,4 +28,22 @@ export class StreamService {
     const token = this.streamClient.generateUserToken({ user_id: userId });
     return token;
   }
+
+  async getRecordingsForCall(callId: string) {
+    if (!this.streamClient) {
+      throw new Error('Stream client is not initialized');
+    }
+    try {
+      const call = this.streamClient.video.call('default', callId);
+      const response = await call.listRecordings();
+      return response.recordings || [];
+    } catch (err) {
+      this.logger.error('Error fetching recordings for call: ' + callId, err);
+      return [];
+    }
+  }
+
+  getApiKey(): string {
+    return process.env.STREAM_API_KEY || '';
+  }
 }

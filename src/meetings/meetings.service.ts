@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StreamService } from '../stream/stream.service';
 
 @Injectable()
 export class MeetingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly streamService: StreamService
+  ) {}
 
   async createMeetingSession(userId: string, caseId: string, title?: string) {
     // Validate case access
@@ -58,6 +62,54 @@ export class MeetingsService {
       success: true,
       meetingId: meeting.id,
       chatMessageId: chatMessage.id,
+    };
+  }
+
+  async getRecordingsForCase(userId: string, caseId: string) {
+    // Validate case access
+    const serviceCase = await this.prisma.cases.findUnique({
+      where: { id: caseId },
+    });
+
+    if (!serviceCase) {
+      throw new BadRequestException('Case not found');
+    }
+
+    const isClient = serviceCase.client_id === userId;
+    const isProfessional = serviceCase.professional_id === userId;
+
+    if (!isClient && !isProfessional) {
+      const profile = await this.prisma.profiles.findUnique({ where: { id: userId } });
+      if (profile?.role !== 'admin') {
+        throw new ForbiddenException('You do not have permission to view recordings for this case');
+      }
+    }
+
+    // Find all meetings for this case
+    const meetings = await this.prisma.meetings.findMany({
+      where: { case_id: caseId },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const allRecordings = [];
+
+    // Fetch recordings for each meeting from Stream
+    for (const meeting of meetings) {
+      const recordings = await this.streamService.getRecordingsForCall(meeting.id);
+      if (recordings && recordings.length > 0) {
+        allRecordings.push({
+          meetingId: meeting.id,
+          meetingTitle: meeting.title,
+          meetingDate: meeting.created_at,
+          recordings: recordings,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      caseId,
+      recordings: allRecordings,
     };
   }
 }
