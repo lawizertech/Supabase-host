@@ -53,16 +53,9 @@ model profiles {
 
   cases_as_client       cases[]                @relation("cases_client_idToprofiles")
   cases_as_professional cases[]                @relation("cases_professional_idToprofiles")
-  call_events           call_events[]
-  call_participants     call_participants[]
-  calls_initiated       calls[]                @relation("calls_initiated_byToprofiles")
-  calls_accepted        calls[]                @relation("calls_accepted_byToprofiles")
   case_documents        case_documents[]
-  case_timeline         case_timeline[]
   chat_messages         chat_messages[]
-  meeting_participants  meeting_participants[]
   notifications         notifications[]
-  admin_audit_log       admin_audit_log[]
 
   @@schema("public")
 }
@@ -80,9 +73,7 @@ model cases {
   client       profiles  @relation("cases_client_idToprofiles", fields: [client_id], references: [id], onDelete: Cascade)
   professional profiles? @relation("cases_professional_idToprofiles", fields: [professional_id], references: [id])
 
-  calls          calls[]
   case_documents case_documents[]
-  case_timeline  case_timeline[]
   chat_messages  chat_messages[]
   meetings       meetings[]
   payments       payments[]
@@ -93,81 +84,7 @@ model cases {
   @@schema("public")
 }
 
-model calls {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  case_id           String    @db.Uuid
-  initiated_by      String    @db.Uuid
-  mode              String
-  accepted_by       String?   @db.Uuid
-  status            String    @default("ringing")
-  started_at        DateTime? @default(now())
-  connected_at      DateTime?
-  ended_at          DateTime?
-  end_reason        String?
-  livekit_room_name String?
-  recording_enabled Boolean?  @default(false)
-  created_at        DateTime? @default(now())
 
-  case              cases               @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  initiator         profiles            @relation("calls_initiated_byToprofiles", fields: [initiated_by], references: [id], onDelete: Cascade)
-  acceptor          profiles?           @relation("calls_accepted_byToprofiles", fields: [accepted_by], references: [id])
-  call_events       call_events[]
-  call_participants call_participants[]
-  call_recordings   call_recordings[]
-
-  @@index([case_id])
-  @@index([initiated_by])
-  @@index([status])
-  @@schema("public")
-}
-
-model call_events {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  call_id    String    @db.Uuid
-  event_type String
-  actor_id   String?   @db.Uuid
-  metadata   Json?     @default("{}")
-  created_at DateTime? @default(now())
-
-  call    calls     @relation(fields: [call_id], references: [id], onDelete: Cascade)
-  profile profiles? @relation(fields: [actor_id], references: [id])
-
-  @@index([call_id])
-  @@schema("public")
-}
-
-model call_participants {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  call_id    String    @db.Uuid
-  profile_id String    @db.Uuid
-  role       String?   @default("participant")
-  joined_at  DateTime?
-  left_at    DateTime?
-  created_at DateTime? @default(now())
-
-  call    calls    @relation(fields: [call_id], references: [id], onDelete: Cascade)
-  profile profiles @relation(fields: [profile_id], references: [id])
-
-  @@unique([call_id, profile_id])
-  @@index([call_id])
-  @@schema("public")
-}
-
-model call_recordings {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  call_id            String    @db.Uuid
-  storage_path       String
-  duration_seconds   Int?
-  file_size_bytes    BigInt?
-  encryption_key_ref String?
-  status             String?   @default("recording")
-  created_at         DateTime? @default(now())
-
-  call calls @relation(fields: [call_id], references: [id], onDelete: Cascade)
-
-  @@index([call_id])
-  @@schema("public")
-}
 
 model case_documents {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -187,21 +104,7 @@ model case_documents {
   @@schema("public")
 }
 
-model case_timeline {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  case_id     String    @db.Uuid
-  actor_id    String?   @db.Uuid
-  from_status String?
-  to_status   String?
-  note        String?
-  created_at  DateTime? @default(now())
 
-  case    cases     @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  profile profiles? @relation(fields: [actor_id], references: [id])
-
-  @@index([case_id])
-  @@schema("public")
-}
 
 model chat_messages {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -236,23 +139,13 @@ model meetings {
   created_at    DateTime? @default(now())
 
   case                 cases                  @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  meeting_participants meeting_participants[]
+
 
   @@index([case_id])
   @@schema("public")
 }
 
-model meeting_participants {
-  meeting_id String  @db.Uuid
-  profile_id String  @db.Uuid
-  role       String? @default("attendee")
 
-  meeting meetings @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
-  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-
-  @@id([meeting_id, profile_id])
-  @@schema("public")
-}
 
 model payments {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -286,26 +179,4 @@ model notifications {
   @@schema("public")
 }
 
-model admin_audit_log {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  actor_id   String    @db.Uuid
-  action     String
-  target_id  String?
-  metadata   Json?     @default("{}")
-  created_at DateTime? @default(now())
 
-  actor profiles @relation(fields: [actor_id], references: [id])
-
-  @@schema("public")
-}
-
-model reconciliation_log {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  run_at              DateTime? @default(now())
-  orders_checked      Int
-  discrepancies_found Int
-  auto_healed         Int
-  metadata            Json?     @default("{}")
-
-  @@schema("public")
-}

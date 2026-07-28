@@ -9,9 +9,10 @@ import { CasesModule } from './cases/cases.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { ExpertModule } from './expert/expert.module';
-import { StreamModule } from './stream/stream.module';
 import { DocumentsModule } from './documents/documents.module';
 import { CloudinaryModule } from './storage/cloudinary.module';
+import { MeetingsModule } from './meetings/meetings.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,9 +24,10 @@ import { CloudinaryModule } from './storage/cloudinary.module';
     PaymentsModule,
     AdminModule,
     ExpertModule,
-    StreamModule,
     DocumentsModule,
     CloudinaryModule,
+    MeetingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
