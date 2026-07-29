@@ -100,7 +100,7 @@ export class MeetingsService {
 
     // Fetch recordings for each meeting from Stream
     for (const meeting of meetings) {
-      const recordings = await this.streamService.getRecordingsForCall(meeting.id);
+      const recordings = await this.streamService.getRecordingsForCall(`meet_${meeting.id}`);
       if (recordings && recordings.length > 0) {
         allRecordings.push({
           meetingId: meeting.id,
