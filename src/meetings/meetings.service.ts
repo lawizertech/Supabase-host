@@ -9,7 +9,7 @@ export class MeetingsService {
     private readonly streamService: StreamService
   ) {}
 
-  async createMeetingSession(userId: string, caseId: string, title?: string) {
+  async createMeetingSession(userId: string, caseId: string, title?: string, type?: string) {
     // Validate case access
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
@@ -58,6 +58,7 @@ export class MeetingsService {
       data: {
         case_id: caseId,
         title: title || 'Video Consultation',
+        type: type || 'video',
         status: 'scheduled',
       },
     });
@@ -115,6 +116,21 @@ export class MeetingsService {
       success: true,
       caseId,
       recordings: allRecordings,
+    };
+  }
+
+  async getMeetingById(meetingId: string) {
+    const meeting = await this.prisma.meetings.findUnique({
+      where: { id: meetingId },
+    });
+    
+    if (!meeting) {
+      throw new BadRequestException('Meeting not found');
+    }
+
+    return {
+      success: true,
+      meeting,
     };
   }
 }

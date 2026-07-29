@@ -136,6 +136,7 @@ model meetings {
   end_time      DateTime?
   status        String?   @default("proposed")
   meeting_link  String?
+  type          String?   @default("video")
   created_at    DateTime? @default(now())
 
   case                 cases                  @relation(fields: [case_id], references: [id], onDelete: Cascade)

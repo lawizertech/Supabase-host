@@ -24,10 +24,15 @@ export class MeetingsController {
   @Post('create')
   async createMeeting(
     @Headers('authorization') authHeader: string,
-    @Body() body: { caseId: string; title?: string },
+    @Body() body: { caseId: string; title?: string; type?: string },
   ) {
     const userId = await this.getUserId(authHeader);
-    return this.meetingsService.createMeetingSession(userId, body.caseId, body.title);
+    return this.meetingsService.createMeetingSession(userId, body.caseId, body.title, body.type);
+  }
+
+  @Get('id/:meetingId')
+  async getMeetingById(@Param('meetingId') meetingId: string) {
+    return this.meetingsService.getMeetingById(meetingId);
   }
 
   @Get(':caseId/recordings')
