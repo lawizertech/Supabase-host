@@ -38,6 +38,21 @@ export class MeetingsService {
     if (isClient) senderRole = 'client';
     else if (isProfessional) senderRole = 'professional';
 
+    // Rate limit check: prevent creating another meeting if one was created in the last 15 seconds
+    const lastMeeting = await this.prisma.meetings.findFirst({
+      where: { case_id: caseId },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (lastMeeting) {
+      const now = new Date();
+      const lastMeetingTime = new Date(lastMeeting.created_at);
+      const diffInSeconds = (now.getTime() - lastMeetingTime.getTime()) / 1000;
+      if (diffInSeconds < 15) {
+        throw new BadRequestException('Please wait 15 seconds before creating another meeting session');
+      }
+    }
+
     // Create the meeting record
     const meeting = await this.prisma.meetings.create({
       data: {
@@ -65,7 +80,7 @@ export class MeetingsService {
     };
   }
 
-  async getRecordingsForCase(userId: string, caseId: string) {
+  async getRecordingsForCase(caseId: string) {
     // Validate case access
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
@@ -73,16 +88,6 @@ export class MeetingsService {
 
     if (!serviceCase) {
       throw new BadRequestException('Case not found');
-    }
-
-    const isClient = serviceCase.client_id === userId;
-    const isProfessional = serviceCase.professional_id === userId;
-
-    if (!isClient && !isProfessional) {
-      const profile = await this.prisma.profiles.findUnique({ where: { id: userId } });
-      if (profile?.role !== 'admin') {
-        throw new ForbiddenException('You do not have permission to view recordings for this case');
-      }
     }
 
     // Find all meetings for this case

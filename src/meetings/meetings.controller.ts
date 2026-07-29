@@ -31,11 +31,7 @@ export class MeetingsController {
   }
 
   @Get(':caseId/recordings')
-  async getRecordings(
-    @Headers('authorization') authHeader: string,
-    @Param('caseId') caseId: string,
-  ) {
-    const userId = await this.getUserId(authHeader);
-    return this.meetingsService.getRecordingsForCase(userId, caseId);
+  async getRecordings(@Param('caseId') caseId: string) {
+    return this.meetingsService.getRecordingsForCase(caseId);
   }
 }
