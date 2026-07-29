@@ -15,6 +15,11 @@ export class NotificationsController {
     return this.notificationsService.getAdminNotifications(caseId);
   }
 
+  @Get('case/:caseId/admin/sent')
+  async getAdminSentNotifications(@Param('caseId') caseId: string) {
+    return this.notificationsService.getAdminSentNotifications(caseId);
+  }
+
   @Post('case/:caseId/admin/send')
   async sendAdminNotification(
     @Param('caseId') caseId: string,

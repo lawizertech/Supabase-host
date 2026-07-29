@@ -34,6 +34,16 @@ export class NotificationsService {
     return notifs.filter((n: any) => (n.payload as any)?.caseId === caseId);
   }
 
+  async getAdminSentNotifications(caseId: string) {
+    // Admin sent notifications typically have type 'admin_message' or sender_id 'admin'
+    return this.prisma.$queryRaw`
+      SELECT * FROM "notifications"
+      WHERE "payload"->>'caseId' = ${caseId}
+      AND ("type" = 'admin_message' OR "payload"->>'sender_id' = 'admin')
+      ORDER BY "created_at" DESC
+    `;
+  }
+
   async sendAdminNotificationToUsers(caseId: string, target: 'client' | 'expert' | 'both', payload: any) {
     let roles = [];
     if (target === 'client') roles.push('client');
@@ -50,7 +60,7 @@ export class NotificationsService {
     const data = profiles.map((p: { id: string }) => ({
       recipient_id: p.id,
       type: payload.type || 'admin_message',
-      payload: { ...payload, caseId },
+      payload: { ...payload, caseId, sender_id: 'admin' },
     }));
 
     const result = await this.prisma.notifications.createMany({
