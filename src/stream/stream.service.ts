@@ -37,8 +37,12 @@ export class StreamService {
       const call = this.streamClient.video.call('default', callId);
       const response = await call.listRecordings();
       return response.recordings || [];
-    } catch (err) {
-      this.logger.error('Error fetching recordings for call: ' + callId, err);
+    } catch (err: any) {
+      // Stream throws code 16 / 404 if the call was never joined.
+      // We don't need to log an error for this since it's expected for unused meetings.
+      if (err?.code !== 16 && err?.responseCode !== 404) {
+        this.logger.error('Error fetching recordings for call: ' + callId, err);
+      }
       return [];
     }
   }
