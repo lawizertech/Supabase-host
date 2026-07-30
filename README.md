@@ -1,103 +1,135 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Lawizer Backend API Documentation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Welcome to the Lawizer Backend repository! This document provides a comprehensive overview of the core API endpoints, organized by their intended actor: **Admin**, **User (Client)**, and **Expert (Professional)**.
 
 ---
 
-> [!IMPORTANT]
-> **Frontend Integration Guide:** If you are working on the client-side/frontend applications, please read the [Frontend Integration Guide](file:///Users/suvanghosh/Supabase-host/README_FRONTEND.md) for endpoint documentation, authentication setup, and details on how to hook up Supabase auth.
+## 🔐 Authentication & Security Overview
+The API employs two main security patterns:
+1. **User & Expert Endpoints:** These endpoints are strictly secured. They require a valid Supabase JWT token passed in the `Authorization: Bearer <token>` header. The backend verifies this token with Supabase and extracts the `userId` or `expertId` automatically to prevent spoofing.
+2. **Admin Endpoints:** Currently, the Admin endpoints do not enforce token verification middleware across the board. **Before production**, ensure that you secure these endpoints with an Admin-specific AuthGuard to prevent unauthorized access.
 
-## Project setup
+*(Note: All endpoints are prefixed with `/api/` by default, e.g., `http://localhost:4000/api/...`)*
+
+---
+
+## 👑 1. Admin APIs
+*Handled by `admin.controller.ts` and `notifications.controller.ts`*
+
+### Authentication
+- **POST `/admin/login`**
+  - **Security:** Public
+  - **Use:** Authenticates an admin using either `email/password` or an `idToken`. Returns session tokens.
+
+### User & Expert Management
+- **GET `/admin/users`**
+  - **Use:** Retrieves a list of all registered clients/users.
+- **POST `/admin/clients`** (Alias: `POST /admin/users`)
+  - **Use:** Creates a new client profile manually from the admin dashboard.
+- **GET `/admin/experts`**
+  - **Use:** Retrieves a list of all registered professionals/experts.
+- **POST `/admin/experts`**
+  - **Use:** Registers a new expert profile into the system.
+
+### Case & Service Management
+- **GET `/admin/cases`**
+  - **Use:** Fetches all ongoing and completed cases/services across the platform.
+- **POST `/admin/assign-case`** (Aliases: `POST /admin/assign-service`, `POST /admin/assign`)
+  - **Use:** Assigns an expert (`professional_id`) to a specific client's case.
+  - **Payload:** Requires `AssignCaseDto` detailing the case and the professional.
+- **POST `/admin/cases/update-stages`** (Alias: `POST /admin/update-stages`)
+  - **Use:** Updates the custom stages array for a specific case (e.g., advancing a case from "Review" to "Filing").
+  - **Payload:** `{ caseId: string; stages: any[]; currentStageId?: string }`
+
+### Case Details (Chat & Documents)
+- **GET `/admin/case/:id/chat`**
+  - **Use:** Allows the admin to read chat messages for a specific case. Supports pagination via `?limit` and `?before` query parameters.
+- **GET `/admin/case/:id/documents`**
+  - **Use:** Retrieves all documents uploaded by either the client or the expert for a specific case.
+
+### Admin Notifications
+- **GET `/notifications/case/:caseId/admin`**
+  - **Use:** The **Admin Inbox**. Retrieves notifications sent specifically to the admin for a case (e.g., from an expert).
+- **GET `/notifications/case/:caseId/admin/sent`**
+  - **Use:** The **Admin Outbox**. Retrieves a history of notifications the admin has blasted out to users/experts for a specific case.
+- **POST `/notifications/case/:caseId/admin/send`**
+  - **Use:** Sends a targeted message/notification from the admin to the client, the expert, or both assigned to the case.
+  - **Payload:** `{ "target": "client" | "expert" | "both", "payload": { "type": "admin_message", "message": "..." } }`
+
+### Financials
+- **GET `/admin/transactions`**
+  - **Use:** Retrieves all Razorpay payment records and transaction histories.
+
+---
+
+## 👤 2. User (Client) APIs
+*Handled by `cases.controller.ts` (mapped to `/user`) and `notifications.controller.ts`*
+
+> **Security Note:** All User endpoints require a valid Supabase `Authorization: Bearer <token>` header. The `userId` is extracted securely from the token.
+
+### Dashboard & Services
+- **GET `/user/dashboard`**
+  - **Use:** Fetches the personalized dashboard data for the logged-in user, including their active cases and recent updates.
+- **GET `/user/services`**
+  - **Use:** Retrieves a list of all services/cases associated with the logged-in user.
+- **GET `/user/services/:id`**
+  - **Use:** Fetches detailed information, stages, and status of a specific case belonging to the user.
+- **POST `/user/start-process`**
+  - **Use:** Initiates a new service request or case.
+  - **Payload:** `{ serviceCode: string, clientDetails: { fullName, email, phone }, urgency: string }`
+
+### Documents & Notifications
+- **POST `/user/cases/:id/documents`** (Alias: `POST /user/services/:id/documents`)
+  - **Use:** Logs a new document upload into the database. The physical file is uploaded to Cloudinary/Storage, and this endpoint saves the metadata (`filename`, `storagePath`, `sizeBytes`) linked to the user and case.
+- **GET `/notifications/case/:caseId/user`**
+  - **Use:** Retrieves all alerts and messages targeted to the logged-in client for a specific case.
+
+---
+
+## 💼 3. Expert (Professional) APIs
+*Handled by `expert.controller.ts` and `notifications.controller.ts`*
+
+> **Security Note:** All Expert endpoints require a valid Supabase `Authorization: Bearer <token>` header (except `/login`). The `expertId` is extracted securely from the token.
+
+### Authentication & Profile
+- **POST `/expert/login`**
+  - **Security:** Public
+  - **Use:** Authenticates an expert via password or Supabase `idToken`. Issues session cookies and returns an access token.
+- **GET `/expert/profile`**
+  - **Use:** Retrieves the logged-in expert's profile data.
+- **GET `/expert/dashboard`**
+  - **Use:** Fetches the expert's dashboard, aggregating their active consultations, cases, and tasks.
+
+### Cases & Consultations
+- **GET `/expert/consultations`** (Alias: `GET /expert/cases`)
+  - **Use:** Returns a list of all cases and meetings assigned to the logged-in expert.
+
+### Documents & Notifications
+- **POST `/expert/cases/:id/documents`** (Alias: `POST /expert/upload-document`)
+  - **Use:** Registers a document uploaded by the expert to a specific case.
+  - **Payload:** `{ filename: string, storagePath: string, fileType?: string, sizeBytes?: number }`
+- **GET `/notifications/case/:caseId/user`**
+  - **Use:** (Shared with Client logic) Retrieves notifications targeted to the logged-in expert for the specified case.
+- **POST `/notifications/case/:caseId/expert/send-to-admin`**
+  - **Use:** Allows the expert to send a direct message, alert, or status update directly to the Admin dashboard regarding a case.
+  - **Payload:** `{ "payload": { "message": "Task complete..." } }`
+
+---
+
+## 🛠 Project Setup & Commands
 
 ```bash
+# Install dependencies
 $ npm install
-```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
+# Run in development watch mode
 $ npm run start:dev
 
-# production mode
+# Build for production
+$ npm run build
 $ npm run start:prod
+
+# Prisma Database Sync
+$ npx prisma db push
+$ npx prisma generate
 ```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
