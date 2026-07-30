@@ -45,20 +45,27 @@ export class NotificationsService {
   }
 
   async sendAdminNotificationToUsers(caseId: string, target: 'client' | 'expert' | 'both', payload: any) {
-    let roles = [];
-    if (target === 'client') roles.push('client');
-    if (target === 'expert') roles.push('professional');
-    if (target === 'both') roles = ['client', 'professional'];
-
-    const profiles = await this.prisma.profiles.findMany({
-      where: { role: { in: roles } },
-      select: { id: true },
+    const caseRecord = await this.prisma.cases.findUnique({
+      where: { id: caseId },
+      select: { client_id: true, professional_id: true }
     });
 
-    if (profiles.length === 0) return { count: 0 };
+    if (!caseRecord) {
+      return { count: 0 };
+    }
 
-    const data = profiles.map((p: { id: string }) => ({
-      recipient_id: p.id,
+    const recipientIds: string[] = [];
+    if ((target === 'client' || target === 'both') && caseRecord.client_id) {
+      recipientIds.push(caseRecord.client_id);
+    }
+    if ((target === 'expert' || target === 'both') && caseRecord.professional_id) {
+      recipientIds.push(caseRecord.professional_id);
+    }
+
+    if (recipientIds.length === 0) return { count: 0 };
+
+    const data = recipientIds.map((id) => ({
+      recipient_id: id,
       type: payload.type || 'admin_message',
       payload: { ...payload, caseId, sender_id: 'admin' },
     }));
