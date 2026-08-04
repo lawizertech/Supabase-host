@@ -84,13 +84,14 @@ export class CloudinaryService {
       process.env.CLOUDINARY_API_SECRET || '',
     );
 
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'q1n6i5c4';
     return {
       timestamp,
       signature,
       folder: targetFolder,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/auto/upload`,
+      apiKey: process.env.CLOUDINARY_API_KEY || '969715443973461',
+      cloudName: cloudName,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
     };
   }
 
