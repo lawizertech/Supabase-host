@@ -89,7 +89,10 @@ export class CasesService {
 
   async getDashboard(userId: string) {
     const cases = await this.prisma.cases.findMany({
-      where: { client_id: userId },
+      where: { 
+        client_id: userId,
+        status: { not: 'pending_payment' }
+      },
       include: {
         professional: {
           select: { id: true, name: true, email: true }
@@ -179,7 +182,10 @@ export class CasesService {
 
   async getServices(userId: string) {
     const cases = await this.prisma.cases.findMany({
-      where: { client_id: userId },
+      where: { 
+        client_id: userId,
+        status: { not: 'pending_payment' }
+      },
       include: {
         professional: {
           select: { id: true, name: true, email: true }

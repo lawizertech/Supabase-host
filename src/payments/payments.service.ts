@@ -142,6 +142,7 @@ export class PaymentsService {
     const payments = await this.prisma.payments.findMany({
       where: {
         case_id: { in: caseIds },
+        status: 'verified',
       },
       orderBy: {
         created_at: 'desc',
