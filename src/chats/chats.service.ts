@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -34,7 +38,7 @@ export class ChatsService {
       return;
     }
 
-    throw new ForbiddenException('You do not have access to this case\'s chat');
+    throw new ForbiddenException("You do not have access to this case's chat");
   }
 
   async getMessages(
@@ -48,7 +52,10 @@ export class ChatsService {
 
     let beforeDate: Date | undefined;
     const isUuid = (str?: string) =>
-      str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+      str &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        str,
+      );
 
     const targetBeforeId = beforeId || (isUuid(before) ? before : undefined);
 
@@ -67,7 +74,8 @@ export class ChatsService {
       }
     }
 
-    const take = limit && !isNaN(limit) && limit > 0 ? Number(limit) : undefined;
+    const take =
+      limit && !isNaN(limit) && limit > 0 ? Number(limit) : undefined;
 
     const whereCondition: any = { case_id: caseId };
     if (beforeDate) {
@@ -113,7 +121,6 @@ export class ChatsService {
       orderBy: { created_at: 'asc' },
     });
   }
-
 
   async sendMessage(caseId: string, senderId: string, text: string) {
     await this.checkAccess(caseId, senderId);

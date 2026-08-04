@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -23,9 +31,13 @@ export class NotificationsController {
   @Post('case/:caseId/admin/send')
   async sendAdminNotification(
     @Param('caseId') caseId: string,
-    @Body() body: { target: 'client' | 'expert' | 'both'; payload: any }
+    @Body() body: { target: 'client' | 'expert' | 'both'; payload: any },
   ) {
-    return this.notificationsService.sendAdminNotificationToUsers(caseId, body.target, body.payload);
+    return this.notificationsService.sendAdminNotificationToUsers(
+      caseId,
+      body.target,
+      body.payload,
+    );
   }
 
   // -------------------------------------------------------------
@@ -43,11 +55,15 @@ export class NotificationsController {
   @UseGuards(AuthGuard)
   @Post('case/:caseId/expert/send-to-admin')
   async expertSendToAdmin(
-    @Req() req: any, 
+    @Req() req: any,
     @Param('caseId') caseId: string,
-    @Body() body: { payload: any }
+    @Body() body: { payload: any },
   ) {
     const expertId = req.user?.id || req.user?.sub;
-    return this.notificationsService.sendToAdmin(expertId, caseId, body.payload);
+    return this.notificationsService.sendToAdmin(
+      expertId,
+      caseId,
+      body.payload,
+    );
   }
 }

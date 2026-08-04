@@ -30,15 +30,47 @@ export class CasesService {
     const amountPaise = Math.round(price * 100);
 
     if (amountPaise < 100) {
-      throw new BadRequestException('Payment amount must be at least 100 paise (1 INR)');
+      throw new BadRequestException(
+        'Payment amount must be at least 100 paise (1 INR)',
+      );
     }
 
     const defaultStages = [
-      { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', description: 'Fee paid via gateway', status: 'pending' },
-      { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', description: 'Assigned to qualified legal professional', status: 'pending' },
-      { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', description: 'Client & legal documents verified', status: 'pending' },
-      { id: 'stage-4', key: 'in_progress', title: 'Work / Portal Filing In Progress', description: 'Application processed on official portal', status: 'pending' },
-      { id: 'stage-5', key: 'completed', title: 'Service Completed', description: 'Certificate / Final draft issued', status: 'pending' },
+      {
+        id: 'stage-1',
+        key: 'paid_money',
+        title: 'Payment Completed',
+        description: 'Fee paid via gateway',
+        status: 'pending',
+      },
+      {
+        id: 'stage-2',
+        key: 'lawyer_assigned',
+        title: 'Lawyer / Expert Assigned',
+        description: 'Assigned to qualified legal professional',
+        status: 'pending',
+      },
+      {
+        id: 'stage-3',
+        key: 'documents_uploaded',
+        title: 'Documents Uploaded',
+        description: 'Client & legal documents verified',
+        status: 'pending',
+      },
+      {
+        id: 'stage-4',
+        key: 'in_progress',
+        title: 'Work / Portal Filing In Progress',
+        description: 'Application processed on official portal',
+        status: 'pending',
+      },
+      {
+        id: 'stage-5',
+        key: 'completed',
+        title: 'Service Completed',
+        description: 'Certificate / Final draft issued',
+        status: 'pending',
+      },
     ];
 
     const newCase = await this.prisma.cases.create({
@@ -63,7 +95,9 @@ export class CasesService {
       });
     } catch (error: any) {
       console.error('Failed to create Razorpay order:', error);
-      throw new BadRequestException(`Razorpay Order creation failed: ${error.message || 'Unknown error'}`);
+      throw new BadRequestException(
+        `Razorpay Order creation failed: ${error.message || 'Unknown error'}`,
+      );
     }
 
     await this.prisma.payments.create({
@@ -89,14 +123,14 @@ export class CasesService {
 
   async getDashboard(userId: string) {
     const cases = await this.prisma.cases.findMany({
-      where: { 
+      where: {
         client_id: userId,
-        status: { not: 'pending_payment' }
+        status: { not: 'pending_payment' },
       },
       include: {
         professional: {
-          select: { id: true, name: true, email: true }
-        }
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -120,9 +154,9 @@ export class CasesService {
       where: { id: caseId },
       include: {
         professional: {
-          select: { id: true, name: true, email: true }
-        }
-      }
+          select: { id: true, name: true, email: true },
+        },
+      },
     });
 
     if (!serviceCase || serviceCase.client_id !== userId) {
@@ -142,11 +176,11 @@ export class CasesService {
 
     const uploadedDocs = (docs || []).map((d: any) => ({
       documentId: d.id,
-      title: d.filename || "Uploaded Document",
-      name: d.filename || "Uploaded Document",
+      title: d.filename || 'Uploaded Document',
+      name: d.filename || 'Uploaded Document',
       key: d.id,
       fileUrl: d.storage_path,
-      status: "APPROVED",
+      status: 'APPROVED',
       createdAt: d.created_at,
     }));
 
@@ -158,14 +192,22 @@ export class CasesService {
         serviceId: serviceCase.id,
         serviceCode: serviceCase.case_type,
         title: service?.title || serviceCase.case_type,
-        status: serviceCase.status === 'completed' ? 'COMPLETED' : (serviceCase.status === 'pending_payment' ? 'ON_HOLD' : 'ACTIVE'),
+        status:
+          serviceCase.status === 'completed'
+            ? 'COMPLETED'
+            : serviceCase.status === 'pending_payment'
+              ? 'ON_HOLD'
+              : 'ACTIVE',
         macroStatus: serviceCase.status,
         assignedExpertId: serviceCase.professional_id,
-        assignedExpert: serviceCase.professional ? {
-          id: serviceCase.professional.id,
-          name: serviceCase.professional.name || serviceCase.professional.email,
-          email: serviceCase.professional.email
-        } : null,
+        assignedExpert: serviceCase.professional
+          ? {
+              id: serviceCase.professional.id,
+              name:
+                serviceCase.professional.name || serviceCase.professional.email,
+              email: serviceCase.professional.email,
+            }
+          : null,
         stages: stages,
         documentStats: {
           totalRequired: uploadedDocs.length,
@@ -182,20 +224,22 @@ export class CasesService {
 
   async getServices(userId: string) {
     const cases = await this.prisma.cases.findMany({
-      where: { 
+      where: {
         client_id: userId,
-        status: { not: 'pending_payment' }
+        status: { not: 'pending_payment' },
       },
       include: {
         professional: {
-          select: { id: true, name: true, email: true }
-        }
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { created_at: 'desc' },
     });
 
     const services = await this.prisma.services.findMany();
-    const serviceMap = new Map(services.map((s: any) => [s.service_id, s.title]));
+    const serviceMap = new Map(
+      services.map((s: any) => [s.service_id, s.title]),
+    );
 
     const mappedCases = cases.map((c: any) => {
       const title = serviceMap.get(c.case_type) || c.case_type;
@@ -205,16 +249,23 @@ export class CasesService {
         serviceId: c.id,
         serviceCode: c.case_type,
         title: title,
-        status: c.status === 'completed' ? 'COMPLETED' : (c.status === 'pending_payment' ? 'ON_HOLD' : 'ACTIVE'),
+        status:
+          c.status === 'completed'
+            ? 'COMPLETED'
+            : c.status === 'pending_payment'
+              ? 'ON_HOLD'
+              : 'ACTIVE',
         macroStatus: c.status,
         paymentStatus: c.status,
         createdAt: c.created_at,
         assignedExpertId: c.professional_id,
-        assignedExpert: c.professional ? {
-          id: c.professional.id,
-          name: c.professional.name || c.professional.email,
-          email: c.professional.email
-        } : null,
+        assignedExpert: c.professional
+          ? {
+              id: c.professional.id,
+              name: c.professional.name || c.professional.email,
+              email: c.professional.email,
+            }
+          : null,
         stages: stages,
         documentStats: {
           totalRequired: 0,
@@ -231,7 +282,12 @@ export class CasesService {
   async uploadUserDocument(
     userId: string,
     caseId: string,
-    dto: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    dto: {
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
@@ -242,7 +298,9 @@ export class CasesService {
     }
 
     if (serviceCase.client_id !== userId) {
-      throw new BadRequestException('You are not authorized to upload documents for this case');
+      throw new BadRequestException(
+        'You are not authorized to upload documents for this case',
+      );
     }
 
     const doc = await this.prisma.case_documents.create({
@@ -274,4 +332,3 @@ export class CasesService {
     };
   }
 }
-

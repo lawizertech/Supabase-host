@@ -11,14 +11,14 @@ export class StreamController {
   async getToken(@Req() req: any) {
     // AuthGuard attaches the Supabase user object to req.user
     const userId = req.user?.id || req.user?.sub;
-    
+
     if (!userId) {
       throw new Error('User ID not found in request');
     }
 
     const token = this.streamService.generateUserToken(userId);
     const apiKey = this.streamService.getApiKey();
-    
+
     return { token, apiKey };
   }
 }

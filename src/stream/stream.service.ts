@@ -11,7 +11,9 @@ export class StreamService {
     const secretKey = process.env.STREAM_SECRET_KEY;
 
     if (!apiKey || !secretKey) {
-      this.logger.warn('STREAM_API_KEY or STREAM_SECRET_KEY is missing from environment variables.');
+      this.logger.warn(
+        'STREAM_API_KEY or STREAM_SECRET_KEY is missing from environment variables.',
+      );
     } else {
       // Initialize Stream Video Client
       this.streamClient = new StreamClient(apiKey, secretKey);
@@ -23,7 +25,7 @@ export class StreamService {
     if (!this.streamClient) {
       throw new Error('Stream client is not initialized');
     }
-    
+
     // Generate a secure token for the requested user
     const token = this.streamClient.generateUserToken({ user_id: userId });
     return token;

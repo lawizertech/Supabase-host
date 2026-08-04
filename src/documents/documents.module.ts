@@ -12,6 +12,3 @@ import { CloudinaryModule } from '../storage/cloudinary.module';
   exports: [DocumentsService],
 })
 export class DocumentsModule {}
-
-
-

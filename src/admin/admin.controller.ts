@@ -29,17 +29,13 @@ export class AdminController {
   }
 
   @Post('clients')
-  async createClient(
-    @Body() body: any,
-  ) {
+  async createClient(@Body() body: any) {
     const client = await this.adminService.createClient(body);
     return { success: true, data: client };
   }
 
   @Post('users')
-  async createClientAlias(
-    @Body() body: any,
-  ) {
+  async createClientAlias(@Body() body: any) {
     const client = await this.adminService.createClient(body);
     return { success: true, data: client };
   }
@@ -51,33 +47,25 @@ export class AdminController {
   }
 
   @Post('experts')
-  async createExpert(
-    @Body() body: any,
-  ) {
+  async createExpert(@Body() body: any) {
     const expert = await this.adminService.createExpert(body);
     return { success: true, data: expert };
   }
 
   @Post('assign-service')
-  async assignService(
-    @Body() body: any,
-  ) {
+  async assignService(@Body() body: any) {
     const updatedCase = await this.adminService.assignService(body);
     return { success: true, data: updatedCase };
   }
 
   @Post('assign-case')
-  async assignCase(
-    @Body() body: AssignCaseDto,
-  ) {
+  async assignCase(@Body() body: AssignCaseDto) {
     const updatedCase = await this.adminService.assignCase(body);
     return { success: true, data: updatedCase };
   }
 
   @Post('assign')
-  async assign(
-    @Body() body: AssignCaseDto,
-  ) {
+  async assign(@Body() body: AssignCaseDto) {
     const updatedCase = await this.adminService.assignCase(body);
     return { success: true, data: updatedCase };
   }
@@ -86,7 +74,11 @@ export class AdminController {
   async updateStages(
     @Body() body: { caseId: string; stages: any[]; currentStageId?: string },
   ) {
-    const updatedCase = await this.adminService.updateCaseStages(body.caseId, body.stages, body.currentStageId);
+    const updatedCase = await this.adminService.updateCaseStages(
+      body.caseId,
+      body.stages,
+      body.currentStageId,
+    );
     return { success: true, data: updatedCase };
   }
 
@@ -94,7 +86,11 @@ export class AdminController {
   async updateStagesAlias(
     @Body() body: { caseId: string; stages: any[]; currentStageId?: string },
   ) {
-    const updatedCase = await this.adminService.updateCaseStages(body.caseId, body.stages, body.currentStageId);
+    const updatedCase = await this.adminService.updateCaseStages(
+      body.caseId,
+      body.stages,
+      body.currentStageId,
+    );
     return { success: true, data: updatedCase };
   }
 
@@ -112,7 +108,12 @@ export class AdminController {
     @Query('beforeId') beforeId?: string,
   ) {
     const limitNum = limit ? parseInt(limit, 10) : undefined;
-    const messages = await this.adminService.getCaseChatMessages(caseId, limitNum, before, beforeId);
+    const messages = await this.adminService.getCaseChatMessages(
+      caseId,
+      limitNum,
+      before,
+      beforeId,
+    );
     return { success: true, data: messages };
   }
 
@@ -124,23 +125,23 @@ export class AdminController {
     @Query('beforeId') beforeId?: string,
   ) {
     const limitNum = limit ? parseInt(limit, 10) : undefined;
-    const messages = await this.adminService.getCaseChatMessages(caseId, limitNum, before, beforeId);
+    const messages = await this.adminService.getCaseChatMessages(
+      caseId,
+      limitNum,
+      before,
+      beforeId,
+    );
     return { success: true, data: messages };
   }
 
-
   @Get('case/:id/documents')
-  async getCaseDocuments(
-    @Param('id') caseId: string,
-  ) {
+  async getCaseDocuments(@Param('id') caseId: string) {
     const result = await this.adminService.getCaseDocuments(caseId);
     return { success: true, data: result.allDocuments, ...result };
   }
 
   @Get('cases/:id/documents')
-  async getCasesDocumentsAlias(
-    @Param('id') caseId: string,
-  ) {
+  async getCasesDocumentsAlias(@Param('id') caseId: string) {
     const result = await this.adminService.getCaseDocuments(caseId);
     return { success: true, data: result.allDocuments, ...result };
   }
@@ -151,5 +152,3 @@ export class AdminController {
     return { success: true, data: transactions };
   }
 }
-
-

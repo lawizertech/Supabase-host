@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Body, Headers, Req, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -12,7 +21,8 @@ export class PaymentsController {
   @Post('verify')
   async verifyPayment(
     @Headers('authorization') authHeader: string,
-    @Body() body: {
+    @Body()
+    body: {
       razorpay_payment_id: string;
       razorpay_order_id: string;
       razorpay_signature: string;
@@ -27,10 +37,22 @@ export class PaymentsController {
     // Verify token with Supabase to make sure user is logged in
     await this.authService.verifySupabaseToken(token);
 
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, processCode } = body;
+    const {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      processCode,
+    } = body;
 
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !processCode) {
-      throw new BadRequestException('Missing required payment verification parameters');
+    if (
+      !razorpay_payment_id ||
+      !razorpay_order_id ||
+      !razorpay_signature ||
+      !processCode
+    ) {
+      throw new BadRequestException(
+        'Missing required payment verification parameters',
+      );
     }
 
     return this.paymentsService.verifyPayment(

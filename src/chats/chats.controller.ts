@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Headers, Param, Query, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Param,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -27,10 +36,15 @@ export class ChatsController {
     const token = this.extractToken(authHeader);
     const userData = await this.authService.verifySupabaseToken(token);
     const limitNum = limit ? parseInt(limit, 10) : undefined;
-    const messages = await this.chatsService.getMessages(caseId, userData.id, limitNum, before, beforeId);
+    const messages = await this.chatsService.getMessages(
+      caseId,
+      userData.id,
+      limitNum,
+      before,
+      beforeId,
+    );
     return { success: true, data: messages };
   }
-
 
   @Post(':caseId/messages')
   async sendMessage(
@@ -40,7 +54,11 @@ export class ChatsController {
   ) {
     const token = this.extractToken(authHeader);
     const userData = await this.authService.verifySupabaseToken(token);
-    const message = await this.chatsService.sendMessage(caseId, userData.id, body.text);
+    const message = await this.chatsService.sendMessage(
+      caseId,
+      userData.id,
+      body.text,
+    );
     return { success: true, data: message };
   }
 }

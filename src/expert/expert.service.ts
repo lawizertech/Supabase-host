@@ -42,8 +42,15 @@ export class ExpertService {
       orderBy: { created_at: 'desc' },
     });
 
-    const activeCases = cases.filter((c: any) => c.status === 'in_progress' || c.status === 'paid' || c.status === 'ACTIVE');
-    const pendingCases = cases.filter((c: any) => c.status === 'pending_payment' || c.status === 'pending');
+    const activeCases = cases.filter(
+      (c: any) =>
+        c.status === 'in_progress' ||
+        c.status === 'paid' ||
+        c.status === 'ACTIVE',
+    );
+    const pendingCases = cases.filter(
+      (c: any) => c.status === 'pending_payment' || c.status === 'pending',
+    );
 
     return {
       success: true,
@@ -60,12 +67,14 @@ export class ExpertService {
           status: c.status,
           stages: c.stages || [],
           createdAt: c.created_at,
-          client: c.client ? {
-            id: c.client.id,
-            name: c.client.name || c.client.email,
-            email: c.client.email,
-            phone: c.client.phone,
-          } : null,
+          client: c.client
+            ? {
+                id: c.client.id,
+                name: c.client.name || c.client.email,
+                email: c.client.email,
+                phone: c.client.phone,
+              }
+            : null,
         })),
       },
     };
@@ -88,14 +97,18 @@ export class ExpertService {
     });
 
     const mapped = cases.map((c: any) => {
-      const title = c.case_type || `Case #${c.id.substring(0, 8).toUpperCase()}`;
+      const title =
+        c.case_type || `Case #${c.id.substring(0, 8).toUpperCase()}`;
 
       return {
         bookingId: c.id,
         serviceName: title,
         caseId: c.id,
         caseType: c.case_type,
-        status: c.status === 'in_progress' || c.status === 'paid' ? 'confirmed' : 'pending',
+        status:
+          c.status === 'in_progress' || c.status === 'paid'
+            ? 'confirmed'
+            : 'pending',
         bookingDate: c.created_at,
         duration: 60,
         rate: 999,
@@ -117,7 +130,12 @@ export class ExpertService {
   async uploadExpertDocument(
     userId: string,
     caseId: string,
-    dto: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    dto: {
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
@@ -133,7 +151,14 @@ export class ExpertService {
 
     const isAuthorized =
       serviceCase.professional_id === userId ||
-      ['expert', 'professional', 'admin', 'EXPERT', 'PROFESSIONAL', 'LAWYER'].includes(profile?.role || '');
+      [
+        'expert',
+        'professional',
+        'admin',
+        'EXPERT',
+        'PROFESSIONAL',
+        'LAWYER',
+      ].includes(profile?.role || '');
 
     if (!isAuthorized) {
       throw new BadRequestException('You are not assigned to this case');
@@ -168,4 +193,3 @@ export class ExpertService {
     };
   }
 }
-

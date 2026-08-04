@@ -33,7 +33,9 @@ export class PaymentsService {
           data: { status: 'failed' },
         });
       }
-      throw new BadRequestException('Payment verification failed: signature mismatch');
+      throw new BadRequestException(
+        'Payment verification failed: signature mismatch',
+      );
     }
 
     // 2. Find associated payment record
@@ -70,7 +72,8 @@ export class PaymentsService {
   }
 
   async handleWebhook(rawBody: Buffer, signature: string) {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'webhook_secret_placeholder';
+    const secret =
+      process.env.RAZORPAY_WEBHOOK_SECRET || 'webhook_secret_placeholder';
 
     // Verify signature
     const expectedSignature = crypto
@@ -142,7 +145,6 @@ export class PaymentsService {
     const payments = await this.prisma.payments.findMany({
       where: {
         case_id: { in: caseIds },
-        status: 'verified',
       },
       orderBy: {
         created_at: 'desc',
@@ -150,13 +152,16 @@ export class PaymentsService {
     });
 
     const serviceMap = new Map(
-      (await this.prisma.services.findMany()).map((s: any) => [s.service_id, s.title])
+      (await this.prisma.services.findMany()).map((s: any) => [
+        s.service_id,
+        s.title,
+      ]),
     );
 
     const history = payments.map((p: any) => {
       const parentCase = cases.find((c: any) => c.id === p.case_id);
       const serviceTitle = parentCase
-        ? (serviceMap.get(parentCase.case_type) || parentCase.case_type)
+        ? serviceMap.get(parentCase.case_type) || parentCase.case_type
         : 'Unknown Service';
 
       return {

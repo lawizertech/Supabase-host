@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Headers, Param, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  Param,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CasesService } from './cases.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -12,7 +20,8 @@ export class CasesController {
   @Post('start-process')
   async startProcess(
     @Headers('authorization') authHeader: string,
-    @Body() body: {
+    @Body()
+    body: {
       serviceCode: string;
       clientDetails: { fullName: string; email: string; phone: string };
       urgency?: string;
@@ -76,14 +85,24 @@ export class CasesController {
   async uploadUserDocument(
     @Headers('authorization') authHeader: string,
     @Param('id') caseId: string,
-    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    @Body()
+    body: {
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization token missing');
     }
     const token = authHeader.replace('Bearer ', '');
     const userData = await this.authService.verifySupabaseToken(token);
-    const document = await this.casesService.uploadUserDocument(userData.id, caseId, body);
+    const document = await this.casesService.uploadUserDocument(
+      userData.id,
+      caseId,
+      body,
+    );
     return { success: true, document };
   }
 
@@ -91,15 +110,24 @@ export class CasesController {
   async uploadUserServiceDocumentAlias(
     @Headers('authorization') authHeader: string,
     @Param('id') caseId: string,
-    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    @Body()
+    body: {
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization token missing');
     }
     const token = authHeader.replace('Bearer ', '');
     const userData = await this.authService.verifySupabaseToken(token);
-    const document = await this.casesService.uploadUserDocument(userData.id, caseId, body);
+    const document = await this.casesService.uploadUserDocument(
+      userData.id,
+      caseId,
+      body,
+    );
     return { success: true, document };
   }
 }
-

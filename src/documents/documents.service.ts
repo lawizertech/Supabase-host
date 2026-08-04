@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface CreateDocumentDto {
@@ -45,7 +49,8 @@ export class DocumentsService {
   }
 
   async createDocument(dto: CreateDocumentDto) {
-    const { caseId, filename, fileType, storagePath, sizeBytes, uploadedBy } = dto;
+    const { caseId, filename, fileType, storagePath, sizeBytes, uploadedBy } =
+      dto;
     if (!caseId || !storagePath) {
       throw new BadRequestException('caseId and storagePath are required');
     }

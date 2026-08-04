@@ -20,7 +20,7 @@ export class NotificationsService {
     const admins = await this.prisma.profiles.findMany({
       where: { role: 'admin' },
     });
-    
+
     if (admins.length === 0) {
       return [];
     }
@@ -29,9 +29,9 @@ export class NotificationsService {
       where: { recipient_id: { in: admins.map((a: { id: string }) => a.id) } },
       orderBy: { created_at: 'desc' },
     });
-    
+
     // Fallback in-memory filter since Prisma JSON filtering on standard Json type can be tricky across versions
-    return notifs.filter((n: any) => (n.payload as any)?.caseId === caseId);
+    return notifs.filter((n: any) => n.payload?.caseId === caseId);
   }
 
   async getAdminSentNotifications(caseId: string) {
@@ -44,10 +44,14 @@ export class NotificationsService {
     `;
   }
 
-  async sendAdminNotificationToUsers(caseId: string, target: 'client' | 'expert' | 'both', payload: any) {
+  async sendAdminNotificationToUsers(
+    caseId: string,
+    target: 'client' | 'expert' | 'both',
+    payload: any,
+  ) {
     const caseRecord = await this.prisma.cases.findUnique({
       where: { id: caseId },
-      select: { client_id: true, professional_id: true }
+      select: { client_id: true, professional_id: true },
     });
 
     if (!caseRecord) {
@@ -58,7 +62,10 @@ export class NotificationsService {
     if ((target === 'client' || target === 'both') && caseRecord.client_id) {
       recipientIds.push(caseRecord.client_id);
     }
-    if ((target === 'expert' || target === 'both') && caseRecord.professional_id) {
+    if (
+      (target === 'expert' || target === 'both') &&
+      caseRecord.professional_id
+    ) {
       recipientIds.push(caseRecord.professional_id);
     }
 

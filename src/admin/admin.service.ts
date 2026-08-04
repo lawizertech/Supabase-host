@@ -54,16 +54,23 @@ export interface CreateExpertDto {
 @Injectable()
 export class AdminService {
   private readonly supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  private readonly supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  private readonly supabaseServiceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private async createSupabaseAuthUser(email: string, password?: string, name?: string, phone?: string) {
+  private async createSupabaseAuthUser(
+    email: string,
+    password?: string,
+    name?: string,
+    phone?: string,
+  ) {
     if (!this.supabaseUrl || !this.supabaseServiceRoleKey) {
       return { uid: null, password: null };
     }
 
-    const assignedPassword = password || `Lawizer@${Math.floor(100000 + Math.random() * 900000)}`;
+    const assignedPassword =
+      password || `Lawizer@${Math.floor(100000 + Math.random() * 900000)}`;
 
     try {
       const res = await fetch(`${this.supabaseUrl}/auth/v1/admin/users`, {
@@ -87,7 +94,10 @@ export class AdminService {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => null);
-        console.warn('Supabase Admin User creation notice:', errJson?.msg || errJson?.message || res.statusText);
+        console.warn(
+          'Supabase Admin User creation notice:',
+          errJson?.msg || errJson?.message || res.statusText,
+        );
         return { uid: null, password: assignedPassword };
       }
 
@@ -103,17 +113,16 @@ export class AdminService {
   async createClient(dto: CreateClientDto) {
     const { name, email, password, phone, city, state, photoUrl, id } = dto;
     if (!name || !email) {
-      throw new BadRequestException('Name and email are required to create a client.');
+      throw new BadRequestException(
+        'Name and email are required to create a client.',
+      );
     }
 
     let clientId = id;
 
     const existing = await this.prisma.profiles.findFirst({
       where: {
-        OR: [
-          ...(clientId ? [{ id: clientId }] : []),
-          { email: email },
-        ],
+        OR: [...(clientId ? [{ id: clientId }] : []), { email: email }],
       },
     });
 
@@ -140,7 +149,8 @@ export class AdminService {
       };
     }
 
-    const { uid: authUid, password: generatedPassword } = await this.createSupabaseAuthUser(email, password, name, phone);
+    const { uid: authUid, password: generatedPassword } =
+      await this.createSupabaseAuthUser(email, password, name, phone);
     assignedPassword = generatedPassword || password || 'Lawizer@123456';
 
     if (authUid) {
@@ -190,25 +200,45 @@ export class AdminService {
 
   async getAllExperts() {
     return this.prisma.profiles.findMany({
-      where: { role: { in: ['expert', 'professional', 'EXPERT', 'PROFESSIONAL', 'LAWYER', 'lawyer'] } },
+      where: {
+        role: {
+          in: [
+            'expert',
+            'professional',
+            'EXPERT',
+            'PROFESSIONAL',
+            'LAWYER',
+            'lawyer',
+          ],
+        },
+      },
       orderBy: { created_at: 'desc' },
     });
   }
 
   async createExpert(dto: CreateExpertDto) {
-    const { name, email, password, phone, professionalStatus, city, state, photoUrl, id } = dto;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      professionalStatus,
+      city,
+      state,
+      photoUrl,
+      id,
+    } = dto;
     if (!name || !email) {
-      throw new BadRequestException('Name and email are required to create an expert.');
+      throw new BadRequestException(
+        'Name and email are required to create an expert.',
+      );
     }
 
     let expertId = id;
 
     const existing = await this.prisma.profiles.findFirst({
       where: {
-        OR: [
-          ...(expertId ? [{ id: expertId }] : []),
-          { email: email },
-        ],
+        OR: [...(expertId ? [{ id: expertId }] : []), { email: email }],
       },
     });
 
@@ -219,7 +249,10 @@ export class AdminService {
           role: 'professional',
           name: name || existing.name,
           phone: phone || existing.phone,
-          professional_status: professionalStatus || existing.professional_status || 'VERIFIED_EXPERT',
+          professional_status:
+            professionalStatus ||
+            existing.professional_status ||
+            'VERIFIED_EXPERT',
           city: city || existing.city,
           state: state || existing.state,
           photo_url: photoUrl || existing.photo_url,
@@ -228,7 +261,8 @@ export class AdminService {
       });
     }
 
-    const { uid: authUid, password: generatedPassword } = await this.createSupabaseAuthUser(email, password, name, phone);
+    const { uid: authUid, password: generatedPassword } =
+      await this.createSupabaseAuthUser(email, password, name, phone);
     if (authUid) {
       expertId = authUid;
     } else if (!expertId) {
@@ -263,7 +297,14 @@ export class AdminService {
   }
 
   async assignService(dto: AssignServiceDto) {
-    const { clientId, professionalId, caseType, title, stages, currentStageId } = dto;
+    const {
+      clientId,
+      professionalId,
+      caseType,
+      title,
+      stages,
+      currentStageId,
+    } = dto;
 
     if (!clientId) {
       throw new BadRequestException('clientId is required');
@@ -282,18 +323,48 @@ export class AdminService {
         where: { id: professionalId },
       });
       if (!professional) {
-        throw new BadRequestException(`Professional not found with ID ${professionalId}`);
+        throw new BadRequestException(
+          `Professional not found with ID ${professionalId}`,
+        );
       }
     }
 
-    const formattedStages = stages && stages.length > 0 ? stages : [
-      { id: 'stage-1', title: 'Consultation & Requirements', description: 'Initial onboarding & KYC verification', status: 'completed', updatedAt: new Date().toISOString() },
-      { id: 'stage-2', title: 'Documentation & Drafting', description: 'Preparing service filings & documents', status: 'in_progress', updatedAt: new Date().toISOString() },
-      { id: 'stage-3', title: 'Government Portal Filing', description: 'Filing application on official portal', status: 'pending' },
-      { id: 'stage-4', title: 'Service Completion & Approval', description: 'Final certificate / license issued', status: 'pending' },
-    ];
+    const formattedStages =
+      stages && stages.length > 0
+        ? stages
+        : [
+            {
+              id: 'stage-1',
+              title: 'Consultation & Requirements',
+              description: 'Initial onboarding & KYC verification',
+              status: 'completed',
+              updatedAt: new Date().toISOString(),
+            },
+            {
+              id: 'stage-2',
+              title: 'Documentation & Drafting',
+              description: 'Preparing service filings & documents',
+              status: 'in_progress',
+              updatedAt: new Date().toISOString(),
+            },
+            {
+              id: 'stage-3',
+              title: 'Government Portal Filing',
+              description: 'Filing application on official portal',
+              status: 'pending',
+            },
+            {
+              id: 'stage-4',
+              title: 'Service Completion & Approval',
+              description: 'Final certificate / license issued',
+              status: 'pending',
+            },
+          ];
 
-    const activeStageId = currentStageId || formattedStages.find((s) => s.status === 'in_progress')?.id || formattedStages[0]?.id;
+    const activeStageId =
+      currentStageId ||
+      formattedStages.find((s) => s.status === 'in_progress')?.id ||
+      formattedStages[0]?.id;
 
     return this.prisma.cases.create({
       data: {
@@ -314,7 +385,11 @@ export class AdminService {
     });
   }
 
-  async updateCaseStages(caseId: string, stages: StageItemDto[], currentStageId?: string) {
+  async updateCaseStages(
+    caseId: string,
+    stages: StageItemDto[],
+    currentStageId?: string,
+  ) {
     const existingCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
     });
@@ -336,14 +411,20 @@ export class AdminService {
     });
   }
 
-  async assignCase(dto: AssignCaseDto | { caseId: string; professionalId: string }) {
+  async assignCase(
+    dto: AssignCaseDto | { caseId: string; professionalId: string },
+  ) {
     const professionalId = dto.professionalId;
     const caseId = dto.caseId;
     const clientId = 'clientId' in dto ? dto.clientId : undefined;
-    const caseType = ('caseType' in dto && dto.caseType) ? dto.caseType : 'Corporate Legal & Tax Consultation';
-    const title = ('title' in dto && dto.title) ? dto.title : caseType;
+    const caseType =
+      'caseType' in dto && dto.caseType
+        ? dto.caseType
+        : 'Corporate Legal & Tax Consultation';
+    const title = 'title' in dto && dto.title ? dto.title : caseType;
     const stages = 'stages' in dto ? dto.stages : undefined;
-    const currentStageId = 'currentStageId' in dto ? dto.currentStageId : undefined;
+    const currentStageId =
+      'currentStageId' in dto ? dto.currentStageId : undefined;
 
     if (!professionalId) {
       throw new BadRequestException('professionalId is required');
@@ -355,7 +436,9 @@ export class AdminService {
     });
 
     if (!professional) {
-      throw new BadRequestException(`Professional profile not found with ID ${professionalId}`);
+      throw new BadRequestException(
+        `Professional profile not found with ID ${professionalId}`,
+      );
     }
 
     const roleUpper = (professional.role || '').toUpperCase();
@@ -376,13 +459,42 @@ export class AdminService {
 
       if (existingCase) {
         const existingStages = (existingCase.stages as any[]) || [
-          { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
-          { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
-          { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
-          { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
-          { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+          {
+            id: 'stage-1',
+            key: 'paid_money',
+            title: 'Payment Completed',
+            status: 'completed',
+          },
+          {
+            id: 'stage-2',
+            key: 'lawyer_assigned',
+            title: 'Lawyer / Expert Assigned',
+            status: 'completed',
+          },
+          {
+            id: 'stage-3',
+            key: 'documents_uploaded',
+            title: 'Documents Uploaded',
+            status: 'in_progress',
+          },
+          {
+            id: 'stage-4',
+            key: 'in_progress',
+            title: 'Work In Progress',
+            status: 'pending',
+          },
+          {
+            id: 'stage-5',
+            key: 'completed',
+            title: 'Service Completed',
+            status: 'pending',
+          },
         ];
-        const updatedStages = stages || existingStages.map((s: any) => s.key === 'lawyer_assigned' ? { ...s, status: 'completed' } : s);
+        const updatedStages =
+          stages ||
+          existingStages.map((s: any) =>
+            s.key === 'lawyer_assigned' ? { ...s, status: 'completed' } : s,
+          );
 
         return this.prisma.cases.update({
           where: { id: caseId },
@@ -405,15 +517,42 @@ export class AdminService {
       }
 
       if (!clientId) {
-        throw new BadRequestException(`Case not found with ID ${caseId} and no clientId provided to create a new case.`);
+        throw new BadRequestException(
+          `Case not found with ID ${caseId} and no clientId provided to create a new case.`,
+        );
       }
 
       const defaultStages = stages || [
-        { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
-        { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
-        { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
-        { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
-        { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+        {
+          id: 'stage-1',
+          key: 'paid_money',
+          title: 'Payment Completed',
+          status: 'completed',
+        },
+        {
+          id: 'stage-2',
+          key: 'lawyer_assigned',
+          title: 'Lawyer / Expert Assigned',
+          status: 'completed',
+        },
+        {
+          id: 'stage-3',
+          key: 'documents_uploaded',
+          title: 'Documents Uploaded',
+          status: 'in_progress',
+        },
+        {
+          id: 'stage-4',
+          key: 'in_progress',
+          title: 'Work In Progress',
+          status: 'pending',
+        },
+        {
+          id: 'stage-5',
+          key: 'completed',
+          title: 'Service Completed',
+          status: 'pending',
+        },
       ];
 
       return this.prisma.cases.create({
@@ -437,15 +576,42 @@ export class AdminService {
     }
 
     if (!clientId) {
-      throw new BadRequestException('Either caseId or clientId must be provided to assign a case.');
+      throw new BadRequestException(
+        'Either caseId or clientId must be provided to assign a case.',
+      );
     }
 
     const defaultStages = stages || [
-      { id: 'stage-1', key: 'paid_money', title: 'Payment Completed', status: 'completed' },
-      { id: 'stage-2', key: 'lawyer_assigned', title: 'Lawyer / Expert Assigned', status: 'completed' },
-      { id: 'stage-3', key: 'documents_uploaded', title: 'Documents Uploaded', status: 'in_progress' },
-      { id: 'stage-4', key: 'in_progress', title: 'Work In Progress', status: 'pending' },
-      { id: 'stage-5', key: 'completed', title: 'Service Completed', status: 'pending' },
+      {
+        id: 'stage-1',
+        key: 'paid_money',
+        title: 'Payment Completed',
+        status: 'completed',
+      },
+      {
+        id: 'stage-2',
+        key: 'lawyer_assigned',
+        title: 'Lawyer / Expert Assigned',
+        status: 'completed',
+      },
+      {
+        id: 'stage-3',
+        key: 'documents_uploaded',
+        title: 'Documents Uploaded',
+        status: 'in_progress',
+      },
+      {
+        id: 'stage-4',
+        key: 'in_progress',
+        title: 'Work In Progress',
+        status: 'pending',
+      },
+      {
+        id: 'stage-5',
+        key: 'completed',
+        title: 'Service Completed',
+        status: 'pending',
+      },
     ];
 
     return this.prisma.cases.create({
@@ -519,7 +685,10 @@ export class AdminService {
   ) {
     let beforeDate: Date | undefined;
     const isUuid = (str?: string) =>
-      str && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+      str &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        str,
+      );
 
     const targetBeforeId = beforeId || (isUuid(before) ? before : undefined);
 
@@ -538,7 +707,8 @@ export class AdminService {
       }
     }
 
-    const take = limit && !isNaN(limit) && limit > 0 ? Number(limit) : undefined;
+    const take =
+      limit && !isNaN(limit) && limit > 0 ? Number(limit) : undefined;
 
     const whereCondition: any = { case_id: caseId };
     if (beforeDate) {
@@ -603,8 +773,11 @@ export class AdminService {
 
     const formattedDocs = docs.map((d: any) => {
       const uploaderRole = (d.profile?.role || '').toLowerCase();
-      const isClient = d.uploaded_by === serviceCase?.client_id || uploaderRole === 'client';
-      const isExpert = d.uploaded_by === serviceCase?.professional_id || ['expert', 'professional', 'lawyer'].includes(uploaderRole);
+      const isClient =
+        d.uploaded_by === serviceCase?.client_id || uploaderRole === 'client';
+      const isExpert =
+        d.uploaded_by === serviceCase?.professional_id ||
+        ['expert', 'professional', 'lawyer'].includes(uploaderRole);
 
       return {
         id: d.id,
@@ -622,8 +795,12 @@ export class AdminService {
       };
     });
 
-    const clientDocs = formattedDocs.filter((d: any) => d.uploadedByType === 'client');
-    const expertDocs = formattedDocs.filter((d: any) => d.uploadedByType === 'expert');
+    const clientDocs = formattedDocs.filter(
+      (d: any) => d.uploadedByType === 'client',
+    );
+    const expertDocs = formattedDocs.filter(
+      (d: any) => d.uploadedByType === 'expert',
+    );
 
     return {
       allDocuments: formattedDocs,
@@ -637,8 +814,3 @@ export class AdminService {
     };
   }
 }
-
-
-
-
-

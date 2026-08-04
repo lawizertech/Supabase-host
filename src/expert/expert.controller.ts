@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Headers, Param, UnauthorizedException, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Param,
+  UnauthorizedException,
+  Res,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ExpertService } from './expert.service';
 import { AuthService } from '../auth/auth.service';
@@ -12,12 +21,21 @@ export class ExpertController {
 
   @Post('login')
   async login(
-    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string },
+    @Body()
+    body: {
+      idToken?: string;
+      refreshToken?: string;
+      email?: string;
+      password?: string;
+    },
     @Headers('authorization') authHeader?: string,
     @Res({ passthrough: true }) res?: Response,
   ) {
     if (body.email && body.password) {
-      const loginResult = await this.authService.loginWithPassword(body.email, body.password);
+      const loginResult = await this.authService.loginWithPassword(
+        body.email,
+        body.password,
+      );
       if (loginResult.refreshToken && res) {
         res.cookie('refreshToken', loginResult.refreshToken, {
           httpOnly: true,
@@ -27,41 +45,41 @@ export class ExpertController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
       }
-        return {
-          success: true,
-          expert: loginResult.data,
-          token: loginResult.accessToken || loginResult.token,
-          refreshToken: loginResult.refreshToken,
-        };
-      }
-
-      const token = body.idToken || authHeader?.replace('Bearer ', '');
-      if (!token) {
-        throw new UnauthorizedException('No token or credentials provided');
-      }
-
-      const loginResult = await this.authService.login(token, 'professional');
-      if (!loginResult.success) {
-        throw new UnauthorizedException(loginResult.message);
-      }
-
-      const refreshToken = body.refreshToken;
-      if (refreshToken && res) {
-        res.cookie('refreshToken', refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-      }
-
       return {
         success: true,
         expert: loginResult.data,
-        token: loginResult.token,
-        refreshToken: refreshToken,
+        token: loginResult.accessToken || loginResult.token,
+        refreshToken: loginResult.refreshToken,
       };
+    }
+
+    const token = body.idToken || authHeader?.replace('Bearer ', '');
+    if (!token) {
+      throw new UnauthorizedException('No token or credentials provided');
+    }
+
+    const loginResult = await this.authService.login(token, 'professional');
+    if (!loginResult.success) {
+      throw new UnauthorizedException(loginResult.message);
+    }
+
+    const refreshToken = body.refreshToken;
+    if (refreshToken && res) {
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    return {
+      success: true,
+      expert: loginResult.data,
+      token: loginResult.token,
+      refreshToken: refreshToken,
+    };
   }
 
   private async getUserIdFromHeader(authHeader: string): Promise<string> {
@@ -101,21 +119,41 @@ export class ExpertController {
   async uploadExpertDocument(
     @Headers('authorization') authHeader: string,
     @Param('id') caseId: string,
-    @Body() body: { filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    @Body()
+    body: {
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     const userId = await this.getUserIdFromHeader(authHeader);
-    const document = await this.expertService.uploadExpertDocument(userId, caseId, body);
+    const document = await this.expertService.uploadExpertDocument(
+      userId,
+      caseId,
+      body,
+    );
     return { success: true, document };
   }
 
   @Post('upload-document')
   async uploadExpertDocumentBody(
     @Headers('authorization') authHeader: string,
-    @Body() body: { caseId: string; filename: string; storagePath: string; fileType?: string; sizeBytes?: number },
+    @Body()
+    body: {
+      caseId: string;
+      filename: string;
+      storagePath: string;
+      fileType?: string;
+      sizeBytes?: number;
+    },
   ) {
     const userId = await this.getUserIdFromHeader(authHeader);
-    const document = await this.expertService.uploadExpertDocument(userId, body.caseId, body);
+    const document = await this.expertService.uploadExpertDocument(
+      userId,
+      body.caseId,
+      body,
+    );
     return { success: true, document };
   }
 }
-

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Query, Param, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Query,
+  Param,
+  Body,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { DocumentsService, CreateDocumentDto } from './documents.service';
 import { AuthService } from '../auth/auth.service';
 import { CloudinaryService } from '../storage/cloudinary.service';
@@ -24,11 +34,21 @@ export class DocumentsController {
 
   @Post('cloudinary-upload')
   async uploadToCloudinary(
-    @Body() body: { caseId: string; fileData: string; filename: string; fileType?: string },
+    @Body()
+    body: {
+      caseId: string;
+      fileData: string;
+      filename: string;
+      fileType?: string;
+    },
     @Headers('authorization') authHeader?: string,
   ) {
     const userId = await this.verifyAuth(authHeader);
-    const result = await this.cloudinaryService.uploadFile(body.fileData, `case_documents/${body.caseId}`, body.filename);
+    const result = await this.cloudinaryService.uploadFile(
+      body.fileData,
+      `case_documents/${body.caseId}`,
+      body.filename,
+    );
 
     const document = await this.documentsService.createDocument({
       caseId: body.caseId,
@@ -48,7 +68,9 @@ export class DocumentsController {
     @Headers('authorization') authHeader?: string,
   ) {
     await this.verifyAuth(authHeader);
-    const signatureData = this.cloudinaryService.generateUploadSignature(`case_documents/${body.caseId}`);
+    const signatureData = this.cloudinaryService.generateUploadSignature(
+      `case_documents/${body.caseId}`,
+    );
     return { success: true, ...signatureData };
   }
 

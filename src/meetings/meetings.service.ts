@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StreamService } from '../stream/stream.service';
 
@@ -6,10 +10,15 @@ import { StreamService } from '../stream/stream.service';
 export class MeetingsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly streamService: StreamService
+    private readonly streamService: StreamService,
   ) {}
 
-  async createMeetingSession(userId: string, caseId: string, title?: string, type?: string) {
+  async createMeetingSession(
+    userId: string,
+    caseId: string,
+    title?: string,
+    type?: string,
+  ) {
     // Validate case access
     const serviceCase = await this.prisma.cases.findUnique({
       where: { id: caseId },
@@ -27,9 +36,13 @@ export class MeetingsService {
     const isProfessional = serviceCase.professional_id === userId;
 
     if (!isClient && !isProfessional) {
-      const profile = await this.prisma.profiles.findUnique({ where: { id: userId } });
+      const profile = await this.prisma.profiles.findUnique({
+        where: { id: userId },
+      });
       if (profile?.role !== 'admin') {
-        throw new ForbiddenException('You do not have permission to create a session for this case');
+        throw new ForbiddenException(
+          'You do not have permission to create a session for this case',
+        );
       }
     }
 
@@ -49,7 +62,9 @@ export class MeetingsService {
       const lastMeetingTime = new Date(lastMeeting.created_at);
       const diffInSeconds = (now.getTime() - lastMeetingTime.getTime()) / 1000;
       if (diffInSeconds < 15) {
-        throw new BadRequestException('Please wait 15 seconds before creating another meeting session');
+        throw new BadRequestException(
+          'Please wait 15 seconds before creating another meeting session',
+        );
       }
     }
 
@@ -101,7 +116,9 @@ export class MeetingsService {
 
     // Fetch recordings for each meeting from Stream
     for (const meeting of meetings) {
-      const recordings = await this.streamService.getRecordingsForCall(`meet_${meeting.id}`);
+      const recordings = await this.streamService.getRecordingsForCall(
+        `meet_${meeting.id}`,
+      );
       if (recordings && recordings.length > 0) {
         allRecordings.push({
           meetingId: meeting.id,
@@ -123,7 +140,7 @@ export class MeetingsService {
     const meeting = await this.prisma.meetings.findUnique({
       where: { id: meetingId },
     });
-    
+
     if (!meeting) {
       throw new BadRequestException('Meeting not found');
     }

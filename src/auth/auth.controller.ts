@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Body, Query, Headers, Req, UnauthorizedException, BadRequestException, ForbiddenException, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Query,
+  Headers,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
+  ForbiddenException,
+  Res,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 
@@ -9,29 +21,47 @@ export class AuthController {
   @Post('signup')
   async signup(
     @Headers('authorization') authHeader: string,
-    @Body() body: { uid: string; name: string; email: string; phoneNumber: string },
+    @Body()
+    body: { uid: string; name: string; email: string; phoneNumber: string },
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization token missing');
     }
     const token = authHeader.replace('Bearer ', '');
     const userData = await this.authService.verifySupabaseToken(token);
-    
+
     if (userData.id !== body.uid) {
-      throw new ForbiddenException('You cannot register a profile for another user');
+      throw new ForbiddenException(
+        'You cannot register a profile for another user',
+      );
     }
 
-    return this.authService.signUp(body.uid, body.name, body.email, body.phoneNumber);
+    return this.authService.signUp(
+      body.uid,
+      body.name,
+      body.email,
+      body.phoneNumber,
+    );
   }
 
   @Post('login')
   async login(
-    @Body() body: { idToken?: string; refreshToken?: string; email?: string; password?: string; requestedRole?: string },
+    @Body()
+    body: {
+      idToken?: string;
+      refreshToken?: string;
+      email?: string;
+      password?: string;
+      requestedRole?: string;
+    },
     @Headers('authorization') authHeader?: string,
     @Res({ passthrough: true }) res?: Response,
   ) {
     if (body.email && body.password) {
-      const loginResult = await this.authService.loginWithPassword(body.email, body.password);
+      const loginResult = await this.authService.loginWithPassword(
+        body.email,
+        body.password,
+      );
       if (loginResult.refreshToken && res) {
         res.cookie('refreshToken', loginResult.refreshToken, {
           httpOnly: true,
@@ -85,7 +115,9 @@ export class AuthController {
     if (userData.id !== targetUid) {
       const callerProfile = await this.authService.getProfile(userData.id);
       if (!callerProfile.success || callerProfile.data.role !== 'admin') {
-        throw new ForbiddenException('You do not have permission to view this profile');
+        throw new ForbiddenException(
+          'You do not have permission to view this profile',
+        );
       }
     }
 
@@ -95,7 +127,16 @@ export class AuthController {
   @Post('complete-profile')
   async completeProfile(
     @Headers('authorization') authHeader: string,
-    @Body() body: { uid: string; displayName: string; phoneNumber: string; city?: string; state?: string; photoURL?: string; hasPassword?: boolean },
+    @Body()
+    body: {
+      uid: string;
+      displayName: string;
+      phoneNumber: string;
+      city?: string;
+      state?: string;
+      photoURL?: string;
+      hasPassword?: boolean;
+    },
   ) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization token missing');
@@ -104,7 +145,7 @@ export class AuthController {
     const userData = await this.authService.verifySupabaseToken(token);
 
     if (userData.id !== body.uid) {
-      throw new ForbiddenException('You cannot update another user\'s profile');
+      throw new ForbiddenException("You cannot update another user's profile");
     }
 
     return this.authService.completeProfile(
@@ -120,7 +161,7 @@ export class AuthController {
 
   /**
    * POST /auth/refresh
-   * 
+   *
    * The frontend calls this when its access token expires.
    * This endpoint reads the refresh token from the HttpOnly cookie,
    * exchanges it with Supabase for a new access token,
@@ -163,15 +204,13 @@ export class AuthController {
 
   /**
    * GET /auth/me
-   * 
+   *
    * Returns the authoritative user session data.
    * The frontend calls this on app load to restore the session.
    * Validates the access token with Supabase.
    */
   @Get('me')
-  async me(
-    @Headers('authorization') authHeader?: string,
-  ) {
+  async me(@Headers('authorization') authHeader?: string) {
     if (!authHeader) {
       throw new UnauthorizedException('No authorization token provided');
     }
@@ -187,15 +226,12 @@ export class AuthController {
 
   /**
    * POST /auth/logout
-   * 
+   *
    * Clears the HttpOnly refresh token cookie on the backend.
    * The frontend also clears its in-memory access token.
    */
   @Post('logout')
-  async logout(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     // Clear the refresh token cookie
     if (res) {
       res.cookie('refreshToken', '', {

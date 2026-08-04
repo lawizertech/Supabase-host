@@ -4,8 +4,10 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class AuthService {
   private readonly supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  private readonly supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  private readonly supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  private readonly supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  private readonly supabaseServiceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -28,7 +30,9 @@ export class AuthService {
       const userData = await res.json();
       return userData;
     } catch (error) {
-      throw new UnauthorizedException('Token verification failed: ' + (error as Error).message);
+      throw new UnauthorizedException(
+        'Token verification failed: ' + (error as Error).message,
+      );
     }
   }
 
@@ -63,18 +67,23 @@ export class AuthService {
    */
   async loginWithPassword(email: string, password: string) {
     try {
-      const authRes = await fetch(`${this.supabaseUrl}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: this.supabaseAnonKey,
+      const authRes = await fetch(
+        `${this.supabaseUrl}/auth/v1/token?grant_type=password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: this.supabaseAnonKey,
+          },
+          body: JSON.stringify({ email, password }),
         },
-        body: JSON.stringify({ email, password }),
-      });
+      );
 
       if (!authRes.ok) {
         const errJson = await authRes.json().catch(() => null);
-        throw new UnauthorizedException(errJson?.error_description || 'Invalid email or password');
+        throw new UnauthorizedException(
+          errJson?.error_description || 'Invalid email or password',
+        );
       }
 
       const authData = await authRes.json();
@@ -102,7 +111,10 @@ export class AuthService {
       const uid = userData.id;
 
       // Extract Google photo URL from user metadata
-      const googlePhotoUrl = userData.user_metadata?.avatar_url || userData.user_metadata?.picture || '';
+      const googlePhotoUrl =
+        userData.user_metadata?.avatar_url ||
+        userData.user_metadata?.picture ||
+        '';
 
       // Fetch user profile
       let profile = await this.prisma.profiles.findUnique({
@@ -124,7 +136,10 @@ export class AuthService {
           data: {
             id: uid,
             email: userData.email,
-            name: userData.user_metadata?.name || userData.user_metadata?.full_name || '',
+            name:
+              userData.user_metadata?.name ||
+              userData.user_metadata?.full_name ||
+              '',
             phone: userData.user_metadata?.phone || '',
             photo_url: googlePhotoUrl || null,
             role: initialRole,
@@ -139,10 +154,12 @@ export class AuthService {
       }
 
       const isProfileComplete = !!(profile.name && profile.phone);
-      const hasPassword = profile.has_password || !!(
-        userData.identities?.some((id: any) => id.provider === 'email') ||
-        userData.app_metadata?.providers?.includes('email')
-      );
+      const hasPassword =
+        profile.has_password ||
+        !!(
+          userData.identities?.some((id: any) => id.provider === 'email') ||
+          userData.app_metadata?.providers?.includes('email')
+        );
 
       return {
         success: true,
@@ -178,13 +195,24 @@ export class AuthService {
 
       const isProfileComplete = !!(profile.name && profile.phone);
 
-      return { success: true, data: { ...profile, uid: profile.id, isProfileComplete } };
+      return {
+        success: true,
+        data: { ...profile, uid: profile.id, isProfileComplete },
+      };
     } catch (error) {
       return { success: false, message: (error as Error).message };
     }
   }
 
-  async completeProfile(uid: string, name: string, phone: string, city?: string, state?: string, photoUrl?: string, hasPassword?: boolean) {
+  async completeProfile(
+    uid: string,
+    name: string,
+    phone: string,
+    city?: string,
+    state?: string,
+    photoUrl?: string,
+    hasPassword?: boolean,
+  ) {
     try {
       const profile = await this.prisma.profiles.update({
         where: { id: uid },
@@ -219,17 +247,22 @@ export class AuthService {
    */
   async refreshAccessToken(refreshToken: string): Promise<any> {
     try {
-      const res = await fetch(`${this.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: this.supabaseAnonKey,
+      const res = await fetch(
+        `${this.supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: this.supabaseAnonKey,
+          },
+          body: JSON.stringify({ refresh_token: refreshToken }),
         },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+      );
 
       if (!res.ok) {
-        throw new UnauthorizedException('Failed to refresh token with Supabase');
+        throw new UnauthorizedException(
+          'Failed to refresh token with Supabase',
+        );
       }
 
       const data = await res.json();
@@ -239,7 +272,9 @@ export class AuthService {
         refreshToken: data.refresh_token || refreshToken, // Supabase may rotate the refresh token
       };
     } catch (error) {
-      throw new UnauthorizedException('Token refresh failed: ' + (error as Error).message);
+      throw new UnauthorizedException(
+        'Token refresh failed: ' + (error as Error).message,
+      );
     }
   }
 
@@ -263,10 +298,12 @@ export class AuthService {
       }
 
       const isProfileComplete = !!(profile.name && profile.phone);
-      const hasPassword = profile.has_password || !!(
-        userData.identities?.some((id: any) => id.provider === 'email') ||
-        userData.app_metadata?.providers?.includes('email')
-      );
+      const hasPassword =
+        profile.has_password ||
+        !!(
+          userData.identities?.some((id: any) => id.provider === 'email') ||
+          userData.app_metadata?.providers?.includes('email')
+        );
 
       return {
         success: true,
@@ -278,7 +315,9 @@ export class AuthService {
         },
       };
     } catch (error) {
-      throw new UnauthorizedException('Session validation failed: ' + (error as Error).message);
+      throw new UnauthorizedException(
+        'Session validation failed: ' + (error as Error).message,
+      );
     }
   }
 
@@ -293,7 +332,10 @@ export class AuthService {
       // Otherwise, just return success and let the cookie be cleared
       return { success: true, message: 'Logged out successfully' };
     } catch (error) {
-      return { success: true, message: 'Logged out (token revocation skipped)' };
+      return {
+        success: true,
+        message: 'Logged out (token revocation skipped)',
+      };
     }
   }
 }

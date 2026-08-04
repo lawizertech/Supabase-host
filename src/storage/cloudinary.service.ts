@@ -35,15 +35,20 @@ export class CloudinaryService {
     }
 
     try {
-      const publicId = filename ? filename.replace(/[^a-zA-Z0-9.\-_]/g, '_') : undefined;
+      const publicId = filename
+        ? filename.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+        : undefined;
 
-      const result: UploadApiResponse = await cloudinary.uploader.upload(fileData, {
-        folder: `lawizer/${folder}`,
-        public_id: publicId,
-        resource_type: 'auto',
-        use_filename: true,
-        unique_filename: true,
-      });
+      const result: UploadApiResponse = await cloudinary.uploader.upload(
+        fileData,
+        {
+          folder: `lawizer/${folder}`,
+          public_id: publicId,
+          resource_type: 'auto',
+          use_filename: true,
+          unique_filename: true,
+        },
+      );
 
       return {
         publicId: result.public_id,
@@ -56,7 +61,9 @@ export class CloudinaryService {
       };
     } catch (error: any) {
       console.error('Cloudinary upload error:', error);
-      throw new BadRequestException(`Cloudinary upload failed: ${error.message || 'Unknown error'}`);
+      throw new BadRequestException(
+        `Cloudinary upload failed: ${error.message || 'Unknown error'}`,
+      );
     }
   }
 
@@ -95,7 +102,9 @@ export class CloudinaryService {
       return await cloudinary.uploader.destroy(publicId);
     } catch (error: any) {
       console.error('Cloudinary delete error:', error);
-      throw new BadRequestException(`Cloudinary delete failed: ${error.message}`);
+      throw new BadRequestException(
+        `Cloudinary delete failed: ${error.message}`,
+      );
     }
   }
 }
