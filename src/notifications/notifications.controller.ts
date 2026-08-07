@@ -66,4 +66,28 @@ export class NotificationsController {
       body.payload,
     );
   }
+
+  @UseGuards(AuthGuard)
+  @Get('recent')
+  async getRecent(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    const notifications = await this.notificationsService.getRecentUserNotifications(userId);
+    return { notifications };
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('read-all')
+  async markAllAsRead(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    await this.notificationsService.markAllAsRead(userId);
+    return { message: 'All marked as read' };
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/read')
+  async markAsRead(@Req() req: any, @Param('id') id: string) {
+    const userId = req.user?.id || req.user?.sub;
+    await this.notificationsService.markAsRead(userId, id);
+    return { message: 'Notification marked as read' };
+  }
 }

@@ -106,4 +106,28 @@ export class NotificationsService {
 
     return { count: result.count };
   }
+
+  async getRecentUserNotifications(userId: string) {
+    return this.prisma.notifications.findMany({
+      where: { recipient_id: userId },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    });
+  }
+
+  async markAllAsRead(userId: string) {
+    await this.prisma.notifications.updateMany({
+      where: { recipient_id: userId, read_at: null },
+      data: { read_at: new Date() },
+    });
+    return { success: true };
+  }
+
+  async markAsRead(userId: string, notificationId: string) {
+    await this.prisma.notifications.updateMany({
+      where: { id: notificationId, recipient_id: userId, read_at: null },
+      data: { read_at: new Date() },
+    });
+    return { success: true };
+  }
 }
